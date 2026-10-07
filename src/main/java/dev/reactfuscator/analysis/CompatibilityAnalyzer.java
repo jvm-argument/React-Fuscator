@@ -23,7 +23,7 @@ public final class CompatibilityAnalyzer {
             if ((c.access & (Opcodes.ACC_ENUM|Opcodes.ACC_RECORD|Opcodes.ACC_ANNOTATION))!=0) {
                 if(keeps.preserveSerializationNames())keeps.keepClass(c.name,"Enum/record/annotation identity");
                 if((c.access & Opcodes.ACC_RECORD)!=0 || (c.access & Opcodes.ACC_ANNOTATION)!=0)keeps.keepMembersOf(c.name);
-                if((c.access & Opcodes.ACC_ENUM)!=0){keeps.keepMemberName("values");keeps.keepMemberName("valueOf");for(FieldNode f:c.fields)if((f.access & Opcodes.ACC_ENUM)!=0)keeps.keepMemberName(f.name);}
+                if((c.access & Opcodes.ACC_ENUM)!=0){for(MethodNode m:c.methods)if(Set.of("values","valueOf").contains(m.name))keeps.keepMember(c.name,m.name,m.desc,"Enum lookup contract");for(FieldNode f:c.fields)if((f.access & Opcodes.ACC_ENUM)!=0)keeps.keepMember(c.name,f.name,f.desc,"Enum constant contract");}
             }
             if (c.name.endsWith("/package-info") || c.name.equals("module-info")) keeps.untouchedClass(c.name,"Package/module metadata");
             if ((c.access & Opcodes.ACC_ENUM)==0 && (hierarchy.assignable("java/io/Serializable",c.name) || hierarchy.assignable("java/io/Externalizable",c.name))) {

@@ -73,7 +73,10 @@ public final class ObfuscationManager {
         listener.progress(.97,"Leak Scanner");listener.log("Stage: Leak Scanner");stats.protection=leakScanner.scan(leakSnapshot,mapping,entries,keeps,stats);
         listener.log("Protection: "+stats.protection.encryptedStrings+" encrypted strings, "+stats.protection.transformedMethods+" transformed methods, "+stats.protection.removedDebugAttributes+" debug attributes removed; metadata leaks "+stats.protection.metadataLeaksFound+" → "+stats.protection.metadataLeaksRemaining);
         if(stats.protection.findingsByStatus.getOrDefault("UNRESOLVED",0L)>0)stats.warnings.add("Leak Scanner: "+stats.protection.findingsByStatus.get("UNRESOLVED")+" unresolved findings; details and retained-contract/ambiguous tokens are in the protection report.");
-        if(!hierarchy.missing().isEmpty()) stats.warnings.add("INCOMPLETE CLASSPATH: verification used fallback hierarchy for "+hierarchy.missing()+". This output is not certified for deployment.");
+        if(!hierarchy.missing().isEmpty()) {
+            if(config.strictDependencies)throw new IOException("Missing dependencies discovered during analysis: "+hierarchy.missing()+"; supply --library JAR or directory");
+            stats.warnings.add("INCOMPLETE CLASSPATH: verification used fallback hierarchy for "+hierarchy.missing()+". This output is not certified for deployment.");
+        }
         cancellation.check();
         for(Path path:List.of(Path.of(output+".mapping.json"),Path.of(output+".report.json")))if(input.equals(path) || (Files.exists(path) && Files.isSameFile(input,path)))throw new IllegalArgumentException("Sidecar destination overlaps input");
         ObfuscationResult result=publication.publish(output,entries,mapping,stats,started);

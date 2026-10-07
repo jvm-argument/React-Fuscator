@@ -22,7 +22,21 @@ public final class ReflectionAnalyzer {
                 if(literals.isEmpty() && (method.access&Opcodes.ACC_PRIVATE)!=0){int parameter=parameterOf(name,method,frames,0);if(parameter>=0)literals=argumentStrings(owner.name,method,parameter,archive);}
                 if(targets.isEmpty()){if(!literals.isEmpty())literals.forEach(keeps::keepMemberName);else keeps.dynamicMembers(owner.name+"#"+method.name+": unresolved Class receiver and member name for "+call.name);continue;}
                 Set<String> affected=new HashSet<>();
-                for(String target:targets){for(String candidate:archive.classes().keySet())if(hierarchy.assignable(target,candidate))affected.add(candidate);Deque<String> parents=new ArrayDeque<>();Set<String> visited=new HashSet<>();parents.add(target);while(!parents.isEmpty()){String current=parents.remove();if(!visited.add(current))continue;affected.add(current);ClassInfo info=hierarchy.resolve(current);if(info.parent()!=null)parents.add(info.parent());parents.addAll(info.interfaces());}}
+                for(String target:targets) {
+                    Set<String> ownedReceivers=new HashSet<>();
+                    for(String candidate:archive.classes().keySet())
+                        if(hierarchy.assignable(target,candidate))ownedReceivers.add(candidate);
+                    // An optional external Class.forName target need not exist in the
+                    // supplied classpath. Only walk hierarchies reachable from owned
+                    // receivers; an unrelated external lookup cannot pin input names.
+                    Deque<String> parents=new ArrayDeque<>(ownedReceivers);
+                    Set<String> visited=new HashSet<>();
+                    while(!parents.isEmpty()) {
+                        String current=parents.remove();if(!visited.add(current))continue;
+                        affected.add(current);ClassInfo info=hierarchy.resolve(current);
+                        if(info.parent()!=null)parents.add(info.parent());parents.addAll(info.interfaces());
+                    }
+                }
                 for(String candidate:affected)if(archive.classes().containsKey(candidate)){
                     if(literals.isEmpty())keeps.keepMembersOf(candidate);
                     else {ClassNode node=archive.classes().get(candidate).node();if(call.name.endsWith("Field")){for(FieldNode field:node.fields)if(literals.contains(field.name))keeps.keepMember(candidate,field.name,field.desc,"Named reflection lookup");}else{for(MethodNode member:node.methods)if(literals.contains(member.name))keeps.keepMember(candidate,member.name,member.desc,"Named reflection lookup");}}
