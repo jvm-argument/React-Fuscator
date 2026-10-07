@@ -1,0 +1,18 @@
+{
+  "profile": "EXTREME",
+  "preservePublicApi": false,
+  "preserveSerializationNames": false,
+  "renameMixins": true,
+  "scatterPackages": true,
+  "renameClasses": true,
+  "renamePackages": true,
+  "renameMethods": true,
+  "renameFields": true,
+  "include": ["**"],
+  "exclude": [],
+  "keep": [],
+  "keepMembers": [],
+  "libraries": [],
+  "strictDependencies": true,
+  "verifyEachPass": true
+}

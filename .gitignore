@@ -1,0 +1,14 @@
+target/
+.reference/
+.idea/
+*.iml
+*.log
+work/
+dist/
+logs/
+xeron/
+*.jar
+*.mapping.json
+docs/validation/
+плагины для теста/
+мод для теста/

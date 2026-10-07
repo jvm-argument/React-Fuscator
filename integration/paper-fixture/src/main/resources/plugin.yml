@@ -1,0 +1,7 @@
+name: ReactFuscatorTest
+version: 1.0.0
+main: fixture.SmokePlugin
+api-version: '1.16'
+commands:
+  reacttest:
+    description: Verify obfuscated bytecode behavior

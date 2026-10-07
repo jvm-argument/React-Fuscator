@@ -1,0 +1,1 @@
+{"schemaVersion":1,"id":"reactfuscator_fixture","version":"1.0.0","name":"React-Fuscator compatibility fixture","environment":"*","entrypoints":{"main":["fixture.SmokeEntrypoint"],"client":["fixture.SmokeEntrypoint"]},"depends":{"fabricloader":">=0.16.14","java":">=8"}}
