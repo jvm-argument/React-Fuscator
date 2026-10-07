@@ -1,4 +1,5 @@
 target/
+.style-cache/
 .reference/
 .idea/
 *.iml

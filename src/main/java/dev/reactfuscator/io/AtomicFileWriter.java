@@ -8,11 +8,23 @@ public final class AtomicFileWriter {
         Path absolute = destination.toAbsolutePath();
         Files.createDirectories(absolute.getParent());
         Path temp = Files.createTempFile(absolute.getParent(), ".react-fuscator-", ".tmp");
-        try { Files.write(temp, bytes); publish(temp, absolute); }
-        finally { Files.deleteIfExists(temp); }
+        try {
+            Files.write(temp, bytes);
+            publish(temp, absolute);
+        } finally {
+            Files.deleteIfExists(temp);
+        }
     }
+
     public void publish(Path temp, Path destination) throws IOException {
-        try { Files.move(temp, destination, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING); }
-        catch (AtomicMoveNotSupportedException e) { Files.move(temp, destination, StandardCopyOption.REPLACE_EXISTING); }
+        try {
+            Files.move(
+                    temp,
+                    destination,
+                    StandardCopyOption.ATOMIC_MOVE,
+                    StandardCopyOption.REPLACE_EXISTING);
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(temp, destination, StandardCopyOption.REPLACE_EXISTING);
+        }
     }
 }

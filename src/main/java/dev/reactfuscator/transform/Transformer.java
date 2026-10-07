@@ -5,5 +5,6 @@ import dev.reactfuscator.model.ClassModel;
 
 public interface Transformer {
     TransformerDescriptor descriptor();
-    void transform(ObfuscationContext context,ClassModel model);
+
+    void transform(ObfuscationContext context, ClassModel model);
 }
