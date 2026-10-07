@@ -62,7 +62,19 @@ public final class FabricMetadataHandler implements PlatformHandler {
                         throw new IOException("Fabric entrypoint missing: " + name);
                     }
                     if (name.contains("::")) {
-                        keeps.keepMemberName(name.split("::", 2)[1]);
+                        String memberName = name.split("::", 2)[1];
+                        for (var method : archive.classes().get(owner).node().methods) {
+                            if (method.name.equals(memberName)) {
+                                keeps.keepMember(
+                                        owner, method.name, method.desc, "Fabric named entrypoint");
+                            }
+                        }
+                        for (var field : archive.classes().get(owner).node().fields) {
+                            if (field.name.equals(memberName)) {
+                                keeps.keepMember(
+                                        owner, field.name, field.desc, "Fabric named entrypoint");
+                            }
+                        }
                     }
                 }
             }

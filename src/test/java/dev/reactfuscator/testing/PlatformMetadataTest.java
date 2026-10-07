@@ -50,6 +50,18 @@ public final class PlatformMetadataTest {
     void fabricMixinsRefmapsAndEntryMethodsStayStable() throws Exception {
         ArchiveModel archive = new ArchiveModel();
         archive.classes().put("mod/Entry", model("mod/Entry"));
+        archive.classes()
+                .get("mod/Entry")
+                .node()
+                .methods
+                .add(
+                        new org.objectweb.asm.tree.MethodNode(
+                                org.objectweb.asm.Opcodes.ACC_PUBLIC
+                                        | org.objectweb.asm.Opcodes.ACC_STATIC,
+                                "init",
+                                "()V",
+                                null,
+                                null));
         archive.classes().put("mod/mixin/Hook", model("mod/mixin/Hook"));
         archive.classes().put("mod/Target", model("mod/Target"));
         archive.resources()
@@ -80,6 +92,7 @@ public final class PlatformMetadataTest {
         assertFalse(keep.transformClass("mod/mixin/Hook"));
         assertTrue(keep.keepClass("mod/Target"));
         assertTrue(keep.keepMember("mod/Entry", "init", "()V"));
+        assertFalse(keep.keepMember("mod/Other", "init", "()V"));
         MappingModel map = new MappingModel();
         map.classes().put("mod/Entry", "r/A");
         map.classes().put("mod/mixin/Hook", "q/m/s/H");

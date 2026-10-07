@@ -58,6 +58,6 @@ public final class ApplicationFactory {
                 new TransformerPipeline(registry, verification, new MethodFingerprintService()),
                 verification,
                 new LeakSnapshotFactory(debug),
-                new LeakScannerService(new ConstantPoolReader(), debug));
+                new LeakScannerService(new ConstantPoolReader(), debug, new LeakSymbolService()));
     }
 }

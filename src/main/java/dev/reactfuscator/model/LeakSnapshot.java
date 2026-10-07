@@ -10,4 +10,4 @@ public record LeakSnapshot(
         Set<String> sensitive,
         Map<String, Long> debugAttributes,
         Map<String, byte[]> resources) {
-        }
+}

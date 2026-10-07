@@ -9,4 +9,4 @@ public record FlowGraphModel(
         List<FlowBlockModel> blocks,
         Type[] localTypes,
         Map<AbstractInsnNode, Type> referenceLoads) {
-        }
+}

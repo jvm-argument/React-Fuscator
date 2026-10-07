@@ -2,6 +2,7 @@ import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
+import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.comments.Comment;
 import com.github.javaparser.ast.expr.ObjectCreationExpr;
@@ -90,7 +91,7 @@ public final class JavaStyleTool {
     }
 
     private String format(String source) throws Exception {
-        CompilationUnit unit = parse(source);
+        CompilationUnit unit = parse(splitFields(source));
         LexicalPreservingPrinter.setup(unit);
         for (Comment comment : new ArrayList<>(unit.getAllContainedComments())) {
             comment.remove();
@@ -118,6 +119,35 @@ public final class JavaStyleTool {
         String formatted =
                 formatter.formatSourceAndFixImports(LexicalPreservingPrinter.print(unit));
         return expandEmptyBlocks(formatted);
+    }
+
+    private String splitFields(String source) {
+        CompilationUnit unit = parse(source);
+        List<FieldDeclaration> fields =
+                unit.findAll(FieldDeclaration.class).stream()
+                        .filter(field -> field.getVariables().size() > 1)
+                        .sorted(
+                                Comparator.comparing(
+                                                (FieldDeclaration field) ->
+                                                        field.getBegin().orElseThrow())
+                                        .reversed())
+                        .toList();
+        StringBuilder result = new StringBuilder(source);
+        for (FieldDeclaration field : fields) {
+            StringBuilder replacement = new StringBuilder();
+            for (var variable : field.getVariables()) {
+                FieldDeclaration declaration = field.clone();
+                declaration.setVariables(
+                        new com.github.javaparser.ast.NodeList<>(variable.clone()));
+                replacement.append(declaration).append('\n');
+            }
+            var range = field.getRange().orElseThrow();
+            result.replace(
+                    offset(source, range.begin.line, range.begin.column),
+                    offset(source, range.end.line, range.end.column) + 1,
+                    replacement.toString());
+        }
+        return result.toString();
     }
 
     private Statement block(Statement statement) {
@@ -148,6 +178,7 @@ public final class JavaStyleTool {
                                                 .orElse(false))
                         .toList());
         List<Integer> offsets = new ArrayList<>();
+        java.util.Map<Integer, String> indentationByOffset = new java.util.HashMap<>();
         for (Node node : empty) {
             var range = node.getRange().orElseThrow();
             int start = offset(source, range.begin.line, range.begin.column);
@@ -155,17 +186,22 @@ public final class JavaStyleTool {
             int opening = source.lastIndexOf('{', end);
             if (opening >= start && source.substring(opening + 1, end).isBlank()) {
                 offsets.add(opening);
+                Node indentationNode =
+                        node instanceof BlockStmt ? node.getParentNode().orElse(node) : node;
+                var beginning = indentationNode.getBegin().orElseThrow();
+                int indentationStart = offset(source, beginning.line, 1);
+                int indentationEnd = indentationStart;
+                while (indentationEnd < source.length() && source.charAt(indentationEnd) == ' ') {
+                    indentationEnd++;
+                }
+                indentationByOffset.put(
+                        opening, source.substring(indentationStart, indentationEnd));
             }
         }
         StringBuilder result = new StringBuilder(source);
         for (int opening : offsets.stream().distinct().sorted(Comparator.reverseOrder()).toList()) {
-            int lineStart = source.lastIndexOf('\n', opening) + 1;
-            int indentation = lineStart;
-            while (indentation < source.length() && source.charAt(indentation) == ' ') {
-                indentation++;
-            }
             int closing = source.indexOf('}', opening);
-            result.replace(opening + 1, closing, "\n" + source.substring(lineStart, indentation));
+            result.replace(opening + 1, closing, "\n" + indentationByOffset.get(opening));
         }
         return result.toString();
     }

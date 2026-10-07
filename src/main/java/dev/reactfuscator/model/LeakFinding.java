@@ -1,7 +1,13 @@
 package dev.reactfuscator.model;
 
 public final class LeakFinding {
-    public final String category, entry, symbol, location, status, reason;
+    public final String category;
+    public final String entry;
+    public final String symbol;
+    public final String location;
+    public final String status;
+    public final String reason;
+
     public long occurrences;
 
     public LeakFinding(

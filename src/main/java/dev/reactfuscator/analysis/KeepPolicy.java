@@ -16,8 +16,14 @@ public final class KeepPolicy {
     private final Set<String> mixinPackages = new TreeSet<>();
     private final Map<String, String> generatedSources = new HashMap<>();
     private final ObfuscationConfig config;
-    private final RuleMatcher include, exclude, keep, keepMembers;
-    private boolean dynamicClasses, dynamicMembers;
+    private final RuleMatcher include;
+    private final RuleMatcher exclude;
+    private final RuleMatcher keep;
+    private final RuleMatcher keepMembers;
+
+    private boolean dynamicClasses;
+    private boolean dynamicMembers;
+
     private final Set<String> dynamicMemberReasons = new TreeSet<>();
 
     public KeepPolicy(ObfuscationConfig config) {

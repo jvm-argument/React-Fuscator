@@ -1,7 +1,5 @@
 package dev.reactfuscator.gui;
 
-import com.formdev.flatlaf.extras.FlatSVGIcon;
-
 import dev.reactfuscator.config.*;
 import dev.reactfuscator.core.ObfuscationManager;
 import dev.reactfuscator.model.ObfuscationResult;
@@ -19,27 +17,36 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 public final class WorkbenchPanel extends JPanel {
     private final ObfuscationManager manager;
-    private final JTextField input = new JTextField(), output = new JTextField();
-    private final JTextArea libraries = new JTextArea(3, 25),
-            include = new JTextArea("**", 2, 25),
-            exclude = new JTextArea(2, 25),
-            keep = new JTextArea(2, 25);
+    private final WorkbenchViewFactory view;
+    private final JTextField input = new JTextField();
+    private final JTextField output = new JTextField();
+
+    private final JTextArea libraries = new JTextArea(3, 25);
+    private final JTextArea include = new JTextArea("**", 2, 25);
+    private final JTextArea exclude = new JTextArea(2, 25);
+    private final JTextArea keep = new JTextArea(2, 25);
+
     private final JComboBox<ProtectionProfile> profile =
             new JComboBox<>(ProtectionProfile.values());
-    private final JCheckBox classNames = new JCheckBox("Classes", true),
-            packageNames = new JCheckBox("Packages", true),
-            methodNames = new JCheckBox("Methods", true),
-            fieldNames = new JCheckBox("Fields", true);
-    private final JCheckBox publicApi = new JCheckBox("Keep public API", false),
-            serialization = new JCheckBox("Keep serialization ABI", false),
-            mixins = new JCheckBox("Rename Mixins", true),
-            scatter = new JCheckBox("Scatter packages", true);
+    private final JCheckBox classNames = new JCheckBox("Classes", true);
+    private final JCheckBox packageNames = new JCheckBox("Packages", true);
+    private final JCheckBox methodNames = new JCheckBox("Methods", true);
+    private final JCheckBox fieldNames = new JCheckBox("Fields", true);
+
+    private final JCheckBox publicApi = new JCheckBox("Keep public API", false);
+    private final JCheckBox serialization = new JCheckBox("Keep serialization ABI", false);
+    private final JCheckBox mixins = new JCheckBox("Rename Mixins", true);
+    private final JCheckBox scatter = new JCheckBox("Scatter packages", true);
+
     private final List<TransformerSettingsPanel> transformers = new ArrayList<>();
     private final JTextArea console = new JTextArea();
     private final JProgressBar progress = new JProgressBar(0, 1000);
-    private final JLabel status = new JLabel("Ready"),
-            statistics = new JLabel("Classes —     Methods —     Fields —     Size —");
-    private final JButton start = new JButton("Obfuscate"), cancel = new JButton("Cancel");
+    private final JLabel status = new JLabel("Ready");
+    private final JLabel statistics = new JLabel("Classes —     Methods —     Fields —     Size —");
+
+    private final JButton start = new JButton("Obfuscate");
+    private final JButton cancel = new JButton("Cancel");
+
     private final JSpinner seed =
             new JSpinner(new SpinnerNumberModel(42L, Long.MIN_VALUE, Long.MAX_VALUE, 1L));
     private final JCheckBox fixedSeed = new JCheckBox("Reproducible seed");
@@ -48,38 +55,21 @@ public final class WorkbenchPanel extends JPanel {
     private boolean running;
 
     public WorkbenchPanel(ObfuscationManager manager, TransformerRegistry registry) {
+        this(manager, registry, new WorkbenchViewFactory());
+    }
+
+    public WorkbenchPanel(
+            ObfuscationManager manager, TransformerRegistry registry, WorkbenchViewFactory view) {
         this.manager = manager;
+        this.view = view;
         setLayout(new BorderLayout(24, 20));
         setBorder(BorderFactory.createEmptyBorder(26, 30, 24, 30));
         setBackground(new Color(14, 14, 14));
-        JPanel header = new JPanel(new BorderLayout());
-        header.setOpaque(false);
-        JPanel brand = new JPanel(new BorderLayout(12, 4));
-        brand.setOpaque(false);
-        JLabel logo = new JLabel(icon("shield", 36));
-        brand.add(logo, BorderLayout.WEST);
-        JLabel title = new JLabel("React-Fuscator");
-        title.setFont(title.getFont().deriveFont(Font.BOLD, 27));
-        brand.add(title, BorderLayout.CENTER);
-        JLabel subtitle = new JLabel("BYTECODE PROTECTION  /  JAVA · PAPER · FABRIC");
-        subtitle.setForeground(new Color(145, 145, 145));
-        subtitle.setFont(subtitle.getFont().deriveFont(10f));
-        brand.add(subtitle, BorderLayout.SOUTH);
-        header.add(brand, BorderLayout.WEST);
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        actions.setOpaque(false);
-        JButton load = new JButton("Load config", icon("folder", 16)),
-                save = new JButton("Save config", icon("save", 16));
-        load.addActionListener(e -> loadConfig());
-        save.addActionListener(e -> saveConfig());
-        actions.add(load);
-        actions.add(save);
-        header.add(actions, BorderLayout.EAST);
-        add(header, BorderLayout.NORTH);
+        add(view.header(this::loadConfig, this::saveConfig), BorderLayout.NORTH);
         JPanel left = new JPanel();
         left.setBackground(new Color(14, 14, 14));
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
-        left.add(section("01  /  ARTIFACT"));
+        left.add(view.section("01  /  ARTIFACT"));
         left.add(Box.createVerticalStrut(12));
         JPanel drop = new JPanel(new BorderLayout(0, 7));
         drop.setBackground(new Color(20, 20, 20));
@@ -88,7 +78,7 @@ public final class WorkbenchPanel extends JPanel {
                         BorderFactory.createLineBorder(new Color(65, 65, 65)),
                         BorderFactory.createEmptyBorder(22, 20, 22, 20)));
         drop.setMaximumSize(new Dimension(Integer.MAX_VALUE, 125));
-        drop.add(new JLabel(icon("upload", 27), SwingConstants.CENTER), BorderLayout.NORTH);
+        drop.add(new JLabel(view.icon("upload", 27), SwingConstants.CENTER), BorderLayout.NORTH);
         JLabel dropTitle = new JLabel("Drop a JAR to begin", SwingConstants.CENTER);
         dropTitle.setFont(dropTitle.getFont().deriveFont(Font.BOLD, 16));
         drop.add(dropTitle, BorderLayout.CENTER);
@@ -103,7 +93,7 @@ public final class WorkbenchPanel extends JPanel {
         left.add(Box.createVerticalStrut(8));
         left.add(fileRow("Output", output, true));
         left.add(Box.createVerticalStrut(18));
-        left.add(section("02  /  PROTECTION"));
+        left.add(view.section("02  /  PROTECTION"));
         left.add(Box.createVerticalStrut(10));
         profile.setSelectedItem(ProtectionProfile.EXTREME);
         profile.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
@@ -135,31 +125,15 @@ public final class WorkbenchPanel extends JPanel {
         left.add(compatibility);
         left.add(Box.createVerticalStrut(8));
         JTabbedPane rules = new JTabbedPane();
-        rules.addTab("Libraries", textBox(libraries, "One dependency JAR or directory per line"));
-        rules.addTab("Include", textBox(include, "Internal-name globs, one per line"));
-        rules.addTab("Exclude", textBox(exclude, "Classes / owner#method(descriptor)"));
-        rules.addTab("Keep names", textBox(keep, "Names retained; code still transformed"));
+        rules.addTab(
+                "Libraries", view.textBox(libraries, "One dependency JAR or directory per line"));
+        rules.addTab("Include", view.textBox(include, "Internal-name globs, one per line"));
+        rules.addTab("Exclude", view.textBox(exclude, "Classes / owner#method(descriptor)"));
+        rules.addTab("Keep names", view.textBox(keep, "Names retained; code still transformed"));
         rules.setPreferredSize(new Dimension(430, 160));
         left.add(rules);
         left.add(Box.createVerticalGlue());
-        JPanel right = new JPanel();
-        right.setBackground(new Color(14, 14, 14));
-        right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
-        right.add(section("03  /  TRANSFORMER PIPELINE"));
-        right.add(Box.createVerticalStrut(12));
-        for (var transformer : registry.ordered()) {
-            var row = new TransformerSettingsPanel(transformer.descriptor());
-            row.setPreferredSize(new Dimension(620, 52));
-            row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
-            transformers.add(row);
-            right.add(row);
-            right.add(Box.createVerticalStrut(6));
-        }
-        JLabel hint = new JLabel("Every result is checked by ASM before it is written.");
-        hint.setForeground(new Color(150, 150, 150));
-        right.add(Box.createVerticalStrut(7));
-        right.add(hint);
-        right.add(Box.createVerticalGlue());
+        JPanel right = view.transformerList(registry, transformers);
         for (Component component : left.getComponents()) {
             if (component instanceof JComponent child) {
                 child.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -176,84 +150,30 @@ public final class WorkbenchPanel extends JPanel {
         transformerScroll.setHorizontalScrollBarPolicy(
                 ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         JSplitPane middle =
-                new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, scrollable(left), transformerScroll);
+                new JSplitPane(
+                        JSplitPane.HORIZONTAL_SPLIT, view.scrollable(left), transformerScroll);
         middle.setBackground(new Color(14, 14, 14));
         middle.setBorder(null);
         middle.setResizeWeight(.46);
         middle.setDividerSize(20);
         middle.setContinuousLayout(true);
         add(middle, BorderLayout.CENTER);
-        JPanel bottom = new JPanel(new BorderLayout(0, 10));
-        bottom.setOpaque(false);
-        console.setEditable(false);
-        console.setFont(new Font("Consolas", Font.PLAIN, 12));
-        console.setBackground(new Color(9, 9, 9));
-        console.setForeground(new Color(195, 195, 195));
-        console.setText("React-Fuscator ready. Select a JAR and its dependency classpath.\n");
-        JScrollPane scroll = new JScrollPane(console);
-        scroll.setPreferredSize(new Dimension(100, 160));
-        bottom.add(scroll, BorderLayout.CENTER);
-        JPanel footer = new JPanel(new BorderLayout(16, 9));
-        footer.setOpaque(false);
-        progress.setPreferredSize(new Dimension(100, 5));
-        footer.add(progress, BorderLayout.NORTH);
-        JPanel labels = new JPanel(new GridLayout(2, 1, 0, 6));
-        labels.setOpaque(false);
-        status.setForeground(Color.WHITE);
-        statistics.setForeground(new Color(155, 155, 155));
-        labels.add(status);
-        labels.add(statistics);
-        footer.add(labels, BorderLayout.CENTER);
-        JPanel runButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        runButtons.setOpaque(false);
-        cancel.setEnabled(false);
-        cancel.addActionListener(e -> cancel());
-        start.setIcon(icon("shield", 18));
-        start.setBackground(Color.WHITE);
-        start.setForeground(Color.BLACK);
-        start.setFont(start.getFont().deriveFont(Font.BOLD));
-        start.addActionListener(e -> run());
-        runButtons.add(cancel);
-        runButtons.add(start);
-        footer.add(runButtons, BorderLayout.EAST);
-        bottom.add(footer, BorderLayout.SOUTH);
-        add(bottom, BorderLayout.SOUTH);
+        add(
+                view.footer(
+                        console,
+                        progress,
+                        status,
+                        statistics,
+                        start,
+                        cancel,
+                        this::run,
+                        this::cancel),
+                BorderLayout.SOUTH);
         profile.addActionListener(
                 e ->
                         transformers.forEach(
                                 t -> t.profile((ProtectionProfile) profile.getSelectedItem())));
         transformers.forEach(t -> t.profile(ProtectionProfile.EXTREME));
-    }
-
-    private JScrollPane scrollable(JPanel panel) {
-        JScrollPane scroll = new JScrollPane(panel);
-        scroll.setBorder(null);
-        scroll.getVerticalScrollBar().setUnitIncrement(16);
-        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        return scroll;
-    }
-
-    private Icon icon(String name, int size) {
-        return new FlatSVGIcon("icons/" + name + ".svg", size, size);
-    }
-
-    private JLabel section(String title) {
-        JLabel label = new JLabel(title);
-        label.setFont(label.getFont().deriveFont(Font.BOLD, 11));
-        label.setForeground(new Color(170, 170, 170));
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return label;
-    }
-
-    private JPanel textBox(JTextArea area, String hint) {
-        JPanel panel = new JPanel(new BorderLayout(0, 5));
-        panel.setBorder(BorderFactory.createEmptyBorder(9, 9, 9, 9));
-        area.setFont(new Font("Consolas", Font.PLAIN, 12));
-        panel.add(new JScrollPane(area));
-        JLabel label = new JLabel(hint);
-        label.setFont(label.getFont().deriveFont(11f));
-        panel.add(label, BorderLayout.SOUTH);
-        return panel;
     }
 
     private JPanel fileRow(String title, JTextField text, boolean save) {
@@ -264,7 +184,7 @@ public final class WorkbenchPanel extends JPanel {
         label.setPreferredSize(new Dimension(48, 30));
         row.add(label, BorderLayout.WEST);
         row.add(text);
-        JButton browse = new JButton(icon("folder", 17));
+        JButton browse = new JButton(view.icon("folder", 17));
         browse.addActionListener(
                 e -> {
                     JFileChooser chooser = chooser();

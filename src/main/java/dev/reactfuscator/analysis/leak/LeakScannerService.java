@@ -15,10 +15,15 @@ import java.util.*;
 public final class LeakScannerService {
     private final ConstantPoolReader constants;
     private final DebugAttributeInspector debug;
+    private final LeakSymbolService symbols;
 
-    public LeakScannerService(ConstantPoolReader constants, DebugAttributeInspector debug) {
+    public LeakScannerService(
+            ConstantPoolReader constants,
+            DebugAttributeInspector debug,
+            LeakSymbolService symbols) {
         this.constants = constants;
         this.debug = debug;
+        this.symbols = symbols;
     }
 
     public ProtectionReport scan(
@@ -45,7 +50,7 @@ public final class LeakScannerService {
                 statistics.transformations.getOrDefault("proxy", 0L)
                         + statistics.transformations.getOrDefault("bridges", 0L);
         report.generatedDispatchers = statistics.transformations.getOrDefault("dispatchers", 0L);
-        SymbolTokenIndex index = index(original);
+        SymbolTokenIndex index = symbols.buildIndex(original);
         Set<String> retainedMethods = new HashSet<>(), retainedFields = new HashSet<>();
         mapping.methodDeclarations().stream()
                 .filter(k -> !mapping.methods().containsKey(k))
@@ -58,12 +63,12 @@ public final class LeakScannerService {
         Map<String, Long> remainingDebug = new TreeMap<>();
         Map<String, LeakFinding> findings = new LinkedHashMap<>();
         for (var entry : original.resources().entrySet()) {
-            String text = text(entry.getValue());
-            if (text != null && metadata(entry.getKey())) {
+            String text = symbols.readText(entry.getValue());
+            if (text != null && symbols.isMetadata(entry.getKey())) {
                 index.scan(
                         text,
                         (symbol, offset) -> {
-                            if (!symbol.ambiguous() && stale(symbol, mapping)) {
+                            if (!symbol.ambiguous() && symbols.isStale(symbol, mapping)) {
                                 report.metadataLeaksFound++;
                             }
                         });
@@ -71,7 +76,7 @@ public final class LeakScannerService {
         }
         for (var entry : entries.entrySet()) {
             String path = entry.getKey();
-            boolean metadata = metadata(path), mixin = mixin(path);
+            boolean metadata = symbols.isMetadata(path), mixin = symbols.isMixin(path);
             Set<String> externalNames = new HashSet<>();
             if (path.endsWith(".class")) {
                 ClassNode owner = new ClassNode(Opcodes.ASM9);
@@ -146,7 +151,7 @@ public final class LeakScannerService {
                             value,
                             (symbol, offset) -> {
                                 String status =
-                                        status(
+                                        symbols.classify(
                                                 symbol,
                                                 mapping,
                                                 keeps,
@@ -162,7 +167,7 @@ public final class LeakScannerService {
                                                 symbol.original(),
                                                 "constant pool UTF8",
                                                 status,
-                                                reason(status)),
+                                                symbols.reason(status)),
                                         1);
                             });
                     if (original.literals().contains(value)
@@ -193,7 +198,7 @@ public final class LeakScannerService {
                     }
                 }
             } else {
-                String text = text(entry.getValue());
+                String text = symbols.readText(entry.getValue());
                 if (text == null) {
                     continue;
                 }
@@ -201,7 +206,7 @@ public final class LeakScannerService {
                         path + "\n" + text,
                         (symbol, offset) -> {
                             String status =
-                                    status(
+                                    symbols.classify(
                                             symbol,
                                             mapping,
                                             keeps,
@@ -212,7 +217,9 @@ public final class LeakScannerService {
                                     metadata
                                             ? (mixin ? "MIXIN_METADATA" : "METADATA")
                                             : symbol.category();
-                            if (metadata && !symbol.ambiguous() && stale(symbol, mapping)) {
+                            if (metadata
+                                    && !symbol.ambiguous()
+                                    && symbols.isStale(symbol, mapping)) {
                                 report.metadataLeaksRemaining++;
                             }
                             add(
@@ -224,7 +231,7 @@ public final class LeakScannerService {
                                             symbol.original(),
                                             "resource path/text",
                                             status,
-                                            reason(status)),
+                                            symbols.reason(status)),
                                     1);
                         });
                 for (String sensitive : original.sensitive()) {
@@ -263,136 +270,6 @@ public final class LeakScannerService {
                         .thenComparing(f -> f.category)
                         .thenComparing(f -> f.symbol));
         return report;
-    }
-
-    private SymbolTokenIndex index(LeakSnapshot original) {
-        SymbolTokenIndex index = new SymbolTokenIndex();
-        Set<String> packages = new TreeSet<>();
-        for (String owner : new TreeSet<>(original.classes())) {
-            index.add(new SymbolTokenIndex.Symbol(owner, "CLASS", owner, false));
-            index.add(new SymbolTokenIndex.Symbol(owner.replace('/', '.'), "CLASS", owner, false));
-            int slash = owner.lastIndexOf('/');
-            if (slash > 0) {
-                packages.add(owner.substring(0, slash));
-            }
-            String simple = owner.substring(slash + 1);
-            if (simple.length() >= 5) {
-                index.add(new SymbolTokenIndex.Symbol(simple, "CLASS", owner, true));
-            }
-        }
-        for (String pkg : packages) {
-            index.add(new SymbolTokenIndex.Symbol(pkg, "PACKAGE", pkg, false));
-            index.add(new SymbolTokenIndex.Symbol(pkg.replace('/', '.'), "PACKAGE", pkg, false));
-        }
-        for (String method : new TreeSet<>(original.methods())) {
-            if (method.length() >= 4) {
-                index.add(new SymbolTokenIndex.Symbol(method, "METHOD", method, true));
-            }
-        }
-        for (String field : new TreeSet<>(original.fields())) {
-            if (field.length() >= 4) {
-                index.add(new SymbolTokenIndex.Symbol(field, "FIELD", field, true));
-            }
-        }
-        index.build();
-        return index;
-    }
-
-    private String status(
-            SymbolTokenIndex.Symbol symbol,
-            MappingModel mapping,
-            KeepPolicy keeps,
-            Set<String> methods,
-            Set<String> fields,
-            Set<String> external) {
-        if (symbol.category().equals("METHOD") && methods.contains(symbol.original())
-                || symbol.category().equals("FIELD") && fields.contains(symbol.original())) {
-            return "RETAINED_CONTRACT";
-        }
-        if ((symbol.category().equals("METHOD") || symbol.category().equals("FIELD"))
-                && external.contains(symbol.original())) {
-            return "EXTERNAL_CONTRACT";
-        }
-        if (symbol.category().equals("CLASS")
-                && mapping.mapClass(symbol.original()).equals(symbol.original())) {
-            return "RETAINED_CONTRACT";
-        }
-        if (symbol.category().equals("PACKAGE")
-                && (keeps.keepPackageName(symbol.original())
-                        || mapping.classes().entrySet().stream()
-                                .anyMatch(
-                                        e ->
-                                                e.getKey().equals(e.getValue())
-                                                        && e.getKey()
-                                                                .startsWith(
-                                                                        symbol.original()
-                                                                                + "/")))) {
-            return "RETAINED_CONTRACT";
-        }
-        return symbol.ambiguous() ? "AMBIGUOUS_TOKEN" : "UNRESOLVED";
-    }
-
-    private boolean stale(SymbolTokenIndex.Symbol symbol, MappingModel mapping) {
-        return symbol.category().equals("CLASS")
-                        && !mapping.mapClass(symbol.original()).equals(symbol.original())
-                || symbol.category().equals("PACKAGE")
-                        && mapping.classes().entrySet().stream()
-                                .anyMatch(
-                                        e ->
-                                                e.getKey().startsWith(symbol.original() + "/")
-                                                        && !e.getKey().equals(e.getValue()));
-    }
-
-    private String reason(String status) {
-        return switch (status) {
-            case "RETAINED_CONTRACT" ->
-                    "Input symbol retained by API/reflection/serialization/native/loader or"
-                            + " explicit keep contract";
-            case "EXTERNAL_CONTRACT" -> "Same name is used by an external JVM/API member";
-            case "AMBIGUOUS_TOKEN" ->
-                    "Unqualified token may be application text rather than a stale symbol"
-                            + " reference";
-            default -> "Original symbol remains after remapping; inspect this location";
-        };
-    }
-
-    private boolean metadata(String path) {
-        String lower = path.toLowerCase(Locale.ROOT);
-        return path.equals("fabric.mod.json")
-                || path.equals("plugin.yml")
-                || path.equals("paper-plugin.yml")
-                || path.equalsIgnoreCase("META-INF/MANIFEST.MF")
-                || path.startsWith("META-INF/services/")
-                || lower.contains("mixin")
-                || lower.contains("refmap")
-                || lower.endsWith(".accesswidener");
-    }
-
-    private boolean mixin(String path) {
-        String lower = path.toLowerCase(Locale.ROOT);
-        return lower.contains("mixin") || lower.contains("refmap");
-    }
-
-    private String text(byte[] bytes) {
-        if (bytes.length > 16 * 1024 * 1024) {
-            return null;
-        }
-        try {
-            String result =
-                    StandardCharsets.UTF_8
-                            .newDecoder()
-                            .onMalformedInput(CodingErrorAction.REPORT)
-                            .decode(ByteBuffer.wrap(bytes))
-                            .toString();
-            for (int i = 0; i < result.length(); i++) {
-                if (result.charAt(i) < 32 && "\n\r\t".indexOf(result.charAt(i)) < 0) {
-                    return null;
-                }
-            }
-            return result;
-        } catch (CharacterCodingException failure) {
-            return null;
-        }
     }
 
     private void add(

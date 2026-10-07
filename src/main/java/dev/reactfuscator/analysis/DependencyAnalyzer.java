@@ -37,7 +37,7 @@ public final class DependencyAnalyzer {
                                                                     String[] exceptions) {
                                                                 return new MethodVisitor(
                                                                         Opcodes.ASM9) {
-                                                                        };
+                                                                };
                                                             }
 
                                                             @Override
@@ -49,7 +49,7 @@ public final class DependencyAnalyzer {
                                                                     Object value) {
                                                                 return new FieldVisitor(
                                                                         Opcodes.ASM9) {
-                                                                        };
+                                                                };
                                                             }
                                                         },
                                                         collector)));

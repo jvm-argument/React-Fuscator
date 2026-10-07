@@ -14,14 +14,19 @@ public final class CompatibilityAnalyzer {
     private final AnnotationContractAnalyzer annotationContracts;
 
     public CompatibilityAnalyzer() {
-        this(new ReflectionAnalyzer(), new NativeInteropAnalyzer());
+        this(
+                new ReflectionAnalyzer(),
+                new NativeInteropAnalyzer(),
+                new AnnotationContractAnalyzer());
     }
 
     public CompatibilityAnalyzer(
-            ReflectionAnalyzer reflection, NativeInteropAnalyzer nativeInterop) {
+            ReflectionAnalyzer reflection,
+            NativeInteropAnalyzer nativeInterop,
+            AnnotationContractAnalyzer annotationContracts) {
         this.reflection = reflection;
         this.nativeInterop = nativeInterop;
-        this.annotationContracts = new AnnotationContractAnalyzer();
+        this.annotationContracts = annotationContracts;
     }
 
     public void analyze(
