@@ -1,0 +1,27 @@
+{
+  "profile": "STRONG",
+  "include": ["**"],
+  "exclude": ["vendor/**"],
+  "keep": ["com/example/api/**"],
+  "keepMembers": ["com/example/config/**#**"],
+  "libraries": [],
+  "strictDependencies": true,
+  "verifyEachPass": true,
+  "preservePublicApi": false,
+  "preserveSerializationNames": true,
+  "renameMixins": true,
+  "scatterPackages": true,
+  "transformers": {
+    "strings": {"enabled": true, "density": 100},
+    "indystrings": {"enabled": true, "density": 65},
+    "classnoise": {"enabled": false},
+    "numbers": {"enabled": true, "density": 65, "rounds": 3},
+    "flow": {"enabled": true, "density": 65},
+    "opaque": {"enabled": true, "density": 65, "rounds": 3},
+    "junk": {"enabled": true, "density": 65, "rounds": 3},
+    "indirection": {"enabled": true, "density": 65},
+    "proxy": {"enabled": false},
+    "flatten": {"enabled": false},
+    "debug": {"enabled": true}
+  }
+}
