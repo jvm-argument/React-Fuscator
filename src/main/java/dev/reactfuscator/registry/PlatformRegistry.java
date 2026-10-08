@@ -3,7 +3,7 @@ package dev.reactfuscator.registry;
 import dev.reactfuscator.model.ArchiveModel;
 import dev.reactfuscator.platform.PlatformHandler;
 
-import java.util.*;
+import java.util.List;
 
 public final class PlatformRegistry {
     private final List<PlatformHandler> handlers;

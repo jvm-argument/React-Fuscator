@@ -2,13 +2,20 @@ package dev.reactfuscator.io;
 
 import com.google.gson.GsonBuilder;
 
-import dev.reactfuscator.mapping.*;
-import dev.reactfuscator.model.*;
+import dev.reactfuscator.mapping.MappingModel;
+import dev.reactfuscator.mapping.MappingWriter;
+import dev.reactfuscator.model.ObfuscationResult;
+import dev.reactfuscator.model.RunStatistics;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
-import java.util.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public final class ResultPublicationService {
     private final JarWriter jars;
@@ -26,7 +33,7 @@ public final class ResultPublicationService {
             Path output,
             Map<String, byte[]> entries,
             MappingModel mapping,
-            RunStatistics stats,
+            RunStatistics runStatistics,
             long started)
             throws IOException {
         Path directory = output.toAbsolutePath().getParent();
@@ -41,16 +48,16 @@ public final class ResultPublicationService {
                     stagedMapping = stage.resolve("mapping.json"),
                     stagedReport = stage.resolve("report.json");
             jars.write(stagedJar, entries);
-            mappings.write(stagedMapping, mapping, stats.seed);
-            stats.outputBytes = Files.size(stagedJar);
-            stats.elapsedMillis = (System.nanoTime() - started) / 1_000_000;
+            mappings.write(stagedMapping, mapping, runStatistics.seed);
+            runStatistics.outputBytes = Files.size(stagedJar);
+            runStatistics.elapsedMillis = (System.nanoTime() - started) / 1_000_000;
             files.write(
                     stagedReport,
                     new GsonBuilder()
                             .setPrettyPrinting()
                             .disableHtmlEscaping()
                             .create()
-                            .toJson(stats)
+                            .toJson(runStatistics)
                             .getBytes(StandardCharsets.UTF_8));
             for (Path path : List.of(mappingPath, reportPath)) {
                 if (Files.exists(path) && !Files.isRegularFile(path)) {
@@ -63,7 +70,7 @@ public final class ResultPublicationService {
             files.publish(stagedReport, reportPath);
             published.add(reportPath);
             files.publish(stagedJar, output);
-            return new ObfuscationResult(output, mappingPath, reportPath, stats);
+            return new ObfuscationResult(output, mappingPath, reportPath, runStatistics);
         } catch (IOException failure) {
             for (Path path : published) {
                 try {

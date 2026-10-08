@@ -1,12 +1,26 @@
 package dev.reactfuscator.gui;
 
-import dev.reactfuscator.config.*;
+import dev.reactfuscator.config.ProtectionProfile;
+import dev.reactfuscator.config.TransformerSettings;
 import dev.reactfuscator.transform.TransformerDescriptor;
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
 import java.util.Arrays;
 
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JSpinner;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.SpinnerNumberModel;
 
 public final class TransformerSettingsPanel extends JPanel {
     private final TransformerDescriptor descriptor;

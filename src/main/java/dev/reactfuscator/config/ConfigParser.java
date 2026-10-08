@@ -1,10 +1,16 @@
 package dev.reactfuscator.config;
 
-import com.google.gson.*;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Set;
 
 public final class ConfigParser {

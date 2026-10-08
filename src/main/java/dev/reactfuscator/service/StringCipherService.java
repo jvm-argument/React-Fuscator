@@ -2,10 +2,13 @@ package dev.reactfuscator.service;
 
 import dev.reactfuscator.runtime.StringCipherTemplate;
 
-import org.objectweb.asm.*;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
 
 public final class StringCipherService {
     public String encrypt(String plain, int key) {
@@ -61,8 +64,8 @@ public final class StringCipherService {
             if (in == null) {
                 throw new IllegalStateException("String cipher template missing");
             }
-            ClassNode c = new ClassNode(Opcodes.ASM9);
-            new ClassReader(in).accept(c, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+            ClassNode classNode = new ClassNode(Opcodes.ASM9);
+            new ClassReader(in).accept(classNode, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
             String entry =
                     switch (variant) {
                         case 0 -> "decode";
@@ -72,7 +75,10 @@ public final class StringCipherService {
                         default -> throw new IllegalArgumentException("Unknown cipher variant");
                     };
             MethodNode method =
-                    c.methods.stream().filter(m -> m.name.equals(entry)).findFirst().orElseThrow();
+                    classNode.methods.stream()
+                            .filter(m -> m.name.equals(entry))
+                            .findFirst()
+                            .orElseThrow();
             method.name = name;
             method.access = Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC;
             return method;

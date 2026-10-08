@@ -1,9 +1,10 @@
 package dev.reactfuscator.remap;
 
 import dev.reactfuscator.mapping.MappingModel;
-import dev.reactfuscator.model.*;
+import dev.reactfuscator.model.ArchiveModel;
+import dev.reactfuscator.model.ClassModel;
 
-import org.objectweb.asm.*;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.ClassRemapper;
 import org.objectweb.asm.tree.ClassNode;
 

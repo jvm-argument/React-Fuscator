@@ -1,20 +1,38 @@
 package dev.reactfuscator.testing;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import dev.reactfuscator.config.*;
+import dev.reactfuscator.config.ConfigParser;
+import dev.reactfuscator.config.ObfuscationConfig;
+import dev.reactfuscator.config.ProtectionProfile;
 import dev.reactfuscator.core.ApplicationFactory;
-import dev.reactfuscator.io.*;
-import dev.reactfuscator.mapping.*;
-import dev.reactfuscator.service.*;
+import dev.reactfuscator.io.AtomicFileWriter;
+import dev.reactfuscator.io.JarWriter;
+import dev.reactfuscator.mapping.MappingModel;
+import dev.reactfuscator.mapping.MappingWriter;
+import dev.reactfuscator.mapping.MemberKey;
+import dev.reactfuscator.mapping.RetraceService;
+import dev.reactfuscator.service.CancellationToken;
+import dev.reactfuscator.service.ProgressListener;
 
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
-import java.util.*;
-import java.util.zip.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public final class AdditionalRegressionTest {
     @TempDir Path directory;

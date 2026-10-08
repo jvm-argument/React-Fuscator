@@ -4,11 +4,16 @@ import dev.reactfuscator.core.ApplicationFactory;
 import dev.reactfuscator.gui.ThemeService;
 import dev.reactfuscator.gui.WorkbenchPanel;
 
-import java.awt.*;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.swing.*;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JProgressBar;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 
 public final class GuiSmokeRunner {
     public static void main(String[] args) throws Exception {

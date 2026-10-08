@@ -3,13 +3,21 @@ package dev.reactfuscator.transform.impl;
 import dev.reactfuscator.config.ProtectionProfile;
 import dev.reactfuscator.core.ObfuscationContext;
 import dev.reactfuscator.model.ClassModel;
-import dev.reactfuscator.service.*;
-import dev.reactfuscator.transform.*;
+import dev.reactfuscator.service.ConcatBootstrapFactory;
+import dev.reactfuscator.service.StringCipherService;
+import dev.reactfuscator.transform.Transformer;
+import dev.reactfuscator.transform.TransformerDescriptor;
 
-import org.objectweb.asm.*;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.Handle;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.InvokeDynamicInsnNode;
+import org.objectweb.asm.tree.MethodNode;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public final class ConcatStringTransformer implements Transformer {
     private final StringCipherService cipher;

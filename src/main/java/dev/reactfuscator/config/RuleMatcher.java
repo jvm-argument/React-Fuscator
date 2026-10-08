@@ -1,6 +1,6 @@
 package dev.reactfuscator.config;
 
-import java.util.*;
+import java.util.List;
 import java.util.regex.Pattern;
 
 public final class RuleMatcher {

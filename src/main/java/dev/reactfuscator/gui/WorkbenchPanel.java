@@ -1,18 +1,50 @@
 package dev.reactfuscator.gui;
 
-import dev.reactfuscator.config.*;
+import dev.reactfuscator.config.ConfigParser;
+import dev.reactfuscator.config.ObfuscationConfig;
+import dev.reactfuscator.config.ProtectionProfile;
 import dev.reactfuscator.core.ObfuscationManager;
 import dev.reactfuscator.model.ObfuscationResult;
 import dev.reactfuscator.registry.TransformerRegistry;
-import dev.reactfuscator.service.*;
+import dev.reactfuscator.service.CancellationToken;
+import dev.reactfuscator.service.ProgressListener;
 
-import java.awt.*;
-import java.nio.file.*;
-import java.util.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridLayout;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.JScrollPane;
+import javax.swing.JSpinner;
+import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 public final class WorkbenchPanel extends JPanel {
@@ -224,23 +256,23 @@ public final class WorkbenchPanel extends JPanel {
     }
 
     private ObfuscationConfig config() {
-        ObfuscationConfig c = new ConfigParser().copy(baseConfig);
-        c.profile = (ProtectionProfile) profile.getSelectedItem();
-        c.seed = fixedSeed.isSelected() ? ((Number) seed.getValue()).longValue() : null;
-        c.libraries = new ArrayList<>(lines(libraries));
-        c.include = new ArrayList<>(lines(include));
-        c.exclude = new ArrayList<>(lines(exclude));
-        c.keep = new ArrayList<>(lines(keep));
-        c.preservePublicApi = publicApi.isSelected();
-        c.preserveSerializationNames = serialization.isSelected();
-        c.renameMixins = mixins.isSelected();
-        c.scatterPackages = scatter.isSelected();
-        c.renameClasses = classNames.isSelected();
-        c.renamePackages = packageNames.isSelected();
-        c.renameMethods = methodNames.isSelected();
-        c.renameFields = fieldNames.isSelected();
-        transformers.forEach(t -> c.transformers.put(t.id(), t.settings()));
-        return c;
+        ObfuscationConfig configuration = new ConfigParser().copy(baseConfig);
+        configuration.profile = (ProtectionProfile) profile.getSelectedItem();
+        configuration.seed = fixedSeed.isSelected() ? ((Number) seed.getValue()).longValue() : null;
+        configuration.libraries = new ArrayList<>(lines(libraries));
+        configuration.include = new ArrayList<>(lines(include));
+        configuration.exclude = new ArrayList<>(lines(exclude));
+        configuration.keep = new ArrayList<>(lines(keep));
+        configuration.preservePublicApi = publicApi.isSelected();
+        configuration.preserveSerializationNames = serialization.isSelected();
+        configuration.renameMixins = mixins.isSelected();
+        configuration.scatterPackages = scatter.isSelected();
+        configuration.renameClasses = classNames.isSelected();
+        configuration.renamePackages = packageNames.isSelected();
+        configuration.renameMethods = methodNames.isSelected();
+        configuration.renameFields = fieldNames.isSelected();
+        transformers.forEach(t -> configuration.transformers.put(t.id(), t.settings()));
+        return configuration;
     }
 
     private void run() {

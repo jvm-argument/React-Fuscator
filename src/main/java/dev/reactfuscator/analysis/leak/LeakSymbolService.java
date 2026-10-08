@@ -4,9 +4,13 @@ import dev.reactfuscator.analysis.KeepPolicy;
 import dev.reactfuscator.mapping.MappingModel;
 import dev.reactfuscator.model.LeakSnapshot;
 
-import java.nio.*;
-import java.nio.charset.*;
-import java.util.*;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
+import java.util.Set;
+import java.util.TreeSet;
 
 public final class LeakSymbolService {
     public SymbolTokenIndex buildIndex(LeakSnapshot original) {

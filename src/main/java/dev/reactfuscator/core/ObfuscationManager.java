@@ -1,23 +1,41 @@
 package dev.reactfuscator.core;
 
-import dev.reactfuscator.analysis.*;
-import dev.reactfuscator.analysis.leak.*;
-import dev.reactfuscator.config.*;
-import dev.reactfuscator.io.*;
-import dev.reactfuscator.mapping.*;
-import dev.reactfuscator.model.*;
+import dev.reactfuscator.analysis.CompatibilityAnalyzer;
+import dev.reactfuscator.analysis.HierarchyService;
+import dev.reactfuscator.analysis.KeepPolicy;
+import dev.reactfuscator.analysis.leak.LeakScannerService;
+import dev.reactfuscator.analysis.leak.LeakSnapshotFactory;
+import dev.reactfuscator.config.ConfigParser;
+import dev.reactfuscator.config.ObfuscationConfig;
+import dev.reactfuscator.io.JarReader;
+import dev.reactfuscator.io.ResultPublicationService;
+import dev.reactfuscator.mapping.MappingModel;
+import dev.reactfuscator.mapping.MappingPlanner;
+import dev.reactfuscator.model.ArchiveModel;
+import dev.reactfuscator.model.ClassModel;
+import dev.reactfuscator.model.LeakSnapshot;
+import dev.reactfuscator.model.ObfuscationResult;
+import dev.reactfuscator.model.RunStatistics;
 import dev.reactfuscator.platform.PlatformHandler;
-import dev.reactfuscator.registry.*;
-import dev.reactfuscator.remap.*;
-import dev.reactfuscator.service.*;
-import dev.reactfuscator.transform.*;
-import dev.reactfuscator.util.*;
+import dev.reactfuscator.registry.PlatformRegistry;
+import dev.reactfuscator.registry.TransformerRegistry;
+import dev.reactfuscator.remap.BytecodeRemapService;
+import dev.reactfuscator.remap.ResourceRemapService;
+import dev.reactfuscator.service.CancellationToken;
+import dev.reactfuscator.service.ProgressListener;
+import dev.reactfuscator.transform.TransformerPipeline;
+import dev.reactfuscator.util.BytecodeHelper;
+import dev.reactfuscator.util.NameFactory;
 import dev.reactfuscator.verification.VerificationService;
 
-import java.io.*;
-import java.nio.file.*;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.SecureRandom;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.SplittableRandom;
 
 public final class ObfuscationManager {
     private final ConfigParser configs;
@@ -97,15 +115,15 @@ public final class ObfuscationManager {
         if (input.equals(output) || (Files.exists(output) && Files.isSameFile(input, output))) {
             throw new IllegalArgumentException("Input and output must be different files");
         }
-        RunStatistics stats = new RunStatistics();
-        stats.profile = config.profile.name();
-        stats.inputBytes = Files.size(input);
-        stats.seed = config.seed == null ? new SecureRandom().nextLong() : config.seed;
+        RunStatistics runStatistics = new RunStatistics();
+        runStatistics.profile = config.profile.name();
+        runStatistics.inputBytes = Files.size(input);
+        runStatistics.seed = config.seed == null ? new SecureRandom().nextLong() : config.seed;
         listener.progress(0, "Reading JAR");
-        listener.log("React-Fuscator / " + config.profile + " / seed " + stats.seed);
+        listener.log("React-Fuscator / " + config.profile + " / seed " + runStatistics.seed);
         cancellation.check();
         ArchiveModel archive = reader.read(input);
-        stats.classes = archive.classes().size();
+        runStatistics.classes = archive.classes().size();
         LeakSnapshot leakSnapshot = leakSnapshots.capture(archive, config);
         KeepPolicy keeps = new KeepPolicy(config);
         List<PlatformHandler> detected = platforms.detect(archive);
@@ -116,24 +134,25 @@ public final class ObfuscationManager {
         HierarchyService hierarchy =
                 new HierarchyService(archive, config.libraryPaths(), config.strictDependencies);
         hierarchy.validateParents();
-        compatibility.analyze(archive, keeps, hierarchy, stats);
+        compatibility.analyze(archive, keeps, hierarchy, runStatistics);
         MappingModel mapping =
                 planner.plan(
                         archive,
                         config,
                         keeps,
                         hierarchy,
-                        new NameFactory(new SplittableRandom(stats.seed ^ 0x4d415050494e47L)));
-        stats.renamedClasses =
+                        new NameFactory(
+                                new SplittableRandom(runStatistics.seed ^ 0x4d415050494e47L)));
+        runStatistics.renamedClasses =
                 (int)
                         mapping.classes().entrySet().stream()
                                 .filter(e -> !e.getKey().equals(e.getValue()))
                                 .count();
-        stats.renamedMethods = mapping.methods().size();
-        stats.renamedFields = mapping.fields().size();
-        stats.keptClasses.putAll(keeps.reasons());
+        runStatistics.renamedMethods = mapping.methods().size();
+        runStatistics.renamedFields = mapping.fields().size();
+        runStatistics.keptClasses.putAll(keeps.reasons());
         NameFactory generatedNames =
-                new NameFactory(new SplittableRandom(stats.seed ^ 0x5452414e53464f52L));
+                new NameFactory(new SplittableRandom(runStatistics.seed ^ 0x5452414e53464f52L));
         generatedNames.reserve(mapping.methods().values());
         generatedNames.reserve(mapping.fields().values());
         ObfuscationContext context =
@@ -142,10 +161,10 @@ public final class ObfuscationManager {
                         config,
                         keeps,
                         hierarchy,
-                        stats,
+                        runStatistics,
                         listener,
                         cancellation,
-                        new SplittableRandom(stats.seed),
+                        new SplittableRandom(runStatistics.seed),
                         generatedNames,
                         new BytecodeHelper());
         listener.progress(.15, "Transforming bytecode");
@@ -155,12 +174,12 @@ public final class ObfuscationManager {
         for (PlatformHandler platform : detected) {
             platform.remap(archive, mapping);
         }
-        resourceRemap.remap(archive, mapping, config, stats);
+        resourceRemap.remap(archive, mapping, config, runStatistics);
         bytecodeRemap.remap(archive, mapping);
         hierarchy.refresh(archive);
         Map<String, byte[]> entries = new LinkedHashMap<>(archive.resources());
         int done = 0;
-        stats.outputClasses = archive.classes().size();
+        runStatistics.outputClasses = archive.classes().size();
         for (ClassModel model : archive.classes().values()) {
             cancellation.check();
             byte[] bytes = verification.encode(model.node(), hierarchy);
@@ -174,22 +193,23 @@ public final class ObfuscationManager {
         }
         listener.progress(.97, "Leak Scanner");
         listener.log("Stage: Leak Scanner");
-        stats.protection = leakScanner.scan(leakSnapshot, mapping, entries, keeps, stats);
+        runStatistics.protection =
+                leakScanner.scan(leakSnapshot, mapping, entries, keeps, runStatistics);
         listener.log(
                 "Protection: "
-                        + stats.protection.encryptedStrings
+                        + runStatistics.protection.encryptedStrings
                         + " encrypted strings, "
-                        + stats.protection.transformedMethods
+                        + runStatistics.protection.transformedMethods
                         + " transformed methods, "
-                        + stats.protection.removedDebugAttributes
+                        + runStatistics.protection.removedDebugAttributes
                         + " debug attributes removed; metadata leaks "
-                        + stats.protection.metadataLeaksFound
+                        + runStatistics.protection.metadataLeaksFound
                         + " → "
-                        + stats.protection.metadataLeaksRemaining);
-        if (stats.protection.findingsByStatus.getOrDefault("UNRESOLVED", 0L) > 0) {
-            stats.warnings.add(
+                        + runStatistics.protection.metadataLeaksRemaining);
+        if (runStatistics.protection.findingsByStatus.getOrDefault("UNRESOLVED", 0L) > 0) {
+            runStatistics.warnings.add(
                     "Leak Scanner: "
-                            + stats.protection.findingsByStatus.get("UNRESOLVED")
+                            + runStatistics.protection.findingsByStatus.get("UNRESOLVED")
                             + " unresolved findings; details and retained-contract/ambiguous tokens"
                             + " are in the protection report.");
         }
@@ -200,7 +220,7 @@ public final class ObfuscationManager {
                                 + hierarchy.missing()
                                 + "; supply --library JAR or directory");
             }
-            stats.warnings.add(
+            runStatistics.warnings.add(
                     "INCOMPLETE CLASSPATH: verification used fallback hierarchy for "
                             + hierarchy.missing()
                             + ". This output is not certified for deployment.");
@@ -212,20 +232,21 @@ public final class ObfuscationManager {
                 throw new IllegalArgumentException("Sidecar destination overlaps input");
             }
         }
-        ObfuscationResult result = publication.publish(output, entries, mapping, stats, started);
-        stats.warnings.forEach(listener::log);
+        ObfuscationResult result =
+                publication.publish(output, entries, mapping, runStatistics, started);
+        runStatistics.warnings.forEach(listener::log);
         listener.progress(1, "Complete");
         listener.log(
                 "Verified "
-                        + stats.outputClasses
+                        + runStatistics.outputClasses
                         + " classes ("
-                        + stats.generatedClasses
+                        + runStatistics.generatedClasses
                         + " generated); renamed "
-                        + stats.renamedClasses
+                        + runStatistics.renamedClasses
                         + " classes, "
-                        + stats.renamedMethods
+                        + runStatistics.renamedMethods
                         + " methods, "
-                        + stats.renamedFields
+                        + runStatistics.renamedFields
                         + " fields");
         return result;
     }

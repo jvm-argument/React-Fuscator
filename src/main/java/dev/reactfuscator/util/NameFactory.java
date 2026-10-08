@@ -1,6 +1,9 @@
 package dev.reactfuscator.util;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.SplittableRandom;
 
 public final class NameFactory {
     private final SplittableRandom random;

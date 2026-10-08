@@ -1,6 +1,12 @@
 package dev.reactfuscator.mapping;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public final class MappingModel {
     private final Map<String, String> classes = new LinkedHashMap<>();

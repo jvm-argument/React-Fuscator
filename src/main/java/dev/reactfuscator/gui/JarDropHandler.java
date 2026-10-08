@@ -1,12 +1,12 @@
 package dev.reactfuscator.gui;
 
-import java.awt.datatransfer.*;
+import java.awt.datatransfer.DataFlavor;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;
 
-import javax.swing.*;
+import javax.swing.TransferHandler;
 
 public final class JarDropHandler extends TransferHandler {
     private final Consumer<Path> selected;

@@ -1,11 +1,22 @@
 package dev.reactfuscator.analysis.leak;
 
 import dev.reactfuscator.config.ObfuscationConfig;
-import dev.reactfuscator.model.*;
+import dev.reactfuscator.model.ArchiveModel;
+import dev.reactfuscator.model.ClassModel;
+import dev.reactfuscator.model.LeakSnapshot;
 
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.InvokeDynamicInsnNode;
+import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.MethodNode;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
 
 public final class LeakSnapshotFactory {

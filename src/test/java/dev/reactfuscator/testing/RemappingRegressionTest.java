@@ -1,19 +1,34 @@
 package dev.reactfuscator.testing;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.google.gson.*;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
-import dev.reactfuscator.config.*;
+import dev.reactfuscator.config.ObfuscationConfig;
+import dev.reactfuscator.config.ProtectionProfile;
 
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.objectweb.asm.*;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MethodNode;
 
-import java.nio.file.*;
-import java.util.*;
-import java.util.zip.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public final class RemappingRegressionTest {
     @TempDir Path directory;
@@ -186,9 +201,9 @@ public static void main(String[] args)throws Exception{try{Class.forName("absent
                         17,
                         Map.of(),
                         "layout.Main");
-        ObfuscationConfig c = new ObfuscationConfig();
-        c.keep = List.of("layout/Kept");
-        var result = s.protect(input, c);
+        ObfuscationConfig configuration = new ObfuscationConfig();
+        configuration.keep = List.of("layout/Kept");
+        var result = s.protect(input, configuration);
         assertEquals(s.execute(input), s.execute(result.output()));
         JsonObject classes =
                 JsonParser.parseString(Files.readString(result.mapping()))
@@ -214,10 +229,10 @@ public static void main(String[] args)throws Exception{try{Class.forName("absent
                         8,
                         Map.of(),
                         "cover.Main");
-        ObfuscationConfig c = new ObfuscationConfig();
-        c.profile = ProtectionProfile.EXTREME;
-        c.include = List.of("cover/**");
-        var result = s.protect(input, c);
+        ObfuscationConfig configuration = new ObfuscationConfig();
+        configuration.profile = ProtectionProfile.EXTREME;
+        configuration.include = List.of("cover/**");
+        var result = s.protect(input, configuration);
         assertEquals(s.execute(input), s.execute(result.output()));
         assertTrue(result.statistics().generatedClasses > 0);
         Set<String> owners = new HashSet<>(), referenced = new HashSet<>();
@@ -228,18 +243,18 @@ public static void main(String[] args)throws Exception{try{Class.forName("absent
                     assertFalse(
                             new String(bytes, java.nio.charset.StandardCharsets.ISO_8859_1)
                                     .contains("cover-secret"));
-                    ClassNode n = new ClassNode();
-                    new ClassReader(bytes).accept(n, 0);
-                    assertEquals(0, n.access & Opcodes.ACC_SYNTHETIC);
-                    owners.add(n.name);
-                    for (MethodNode m : n.methods) {
-                        for (AbstractInsnNode instruction : m.instructions) {
+                    ClassNode classNode = new ClassNode();
+                    new ClassReader(bytes).accept(classNode, 0);
+                    assertEquals(0, classNode.access & Opcodes.ACC_SYNTHETIC);
+                    owners.add(classNode.name);
+                    for (MethodNode methodNode : classNode.methods) {
+                        for (AbstractInsnNode instruction : methodNode.instructions) {
                             if (instruction instanceof MethodInsnNode call
-                                    && !call.owner.equals(n.name)) {
+                                    && !call.owner.equals(classNode.name)) {
                                 referenced.add(call.owner);
                             }
                             if (instruction instanceof FieldInsnNode field
-                                    && !field.owner.equals(n.name)) {
+                                    && !field.owner.equals(classNode.name)) {
                                 referenced.add(field.owner);
                             }
                         }
@@ -272,9 +287,9 @@ public static void main(String[] args)throws Exception{try{Class.forName("absent
                         8,
                         Map.of(),
                         "bootstrap.Main");
-        ObfuscationConfig c = new ObfuscationConfig();
-        c.profile = ProtectionProfile.EXTREME;
-        var result = s.protect(input, c);
+        ObfuscationConfig configuration = new ObfuscationConfig();
+        configuration.profile = ProtectionProfile.EXTREME;
+        var result = s.protect(input, configuration);
         assertEquals(s.execute(input), s.execute(result.output()));
         assertTrue(result.statistics().transformations.getOrDefault("indystrings", 0L) > 0);
     }

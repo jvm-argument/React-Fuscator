@@ -4,9 +4,12 @@ import dev.reactfuscator.config.ProtectionProfile;
 import dev.reactfuscator.config.RuleMatcher;
 import dev.reactfuscator.core.ObfuscationContext;
 import dev.reactfuscator.model.ClassModel;
-import dev.reactfuscator.transform.*;
+import dev.reactfuscator.transform.Transformer;
+import dev.reactfuscator.transform.TransformerDescriptor;
 
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.LineNumberNode;
+import org.objectweb.asm.tree.MethodNode;
 
 public final class DebugMetadataTransformer implements Transformer {
     public TransformerDescriptor descriptor() {

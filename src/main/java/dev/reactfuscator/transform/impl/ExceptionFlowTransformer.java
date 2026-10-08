@@ -4,10 +4,18 @@ import dev.reactfuscator.config.ProtectionProfile;
 import dev.reactfuscator.core.ObfuscationContext;
 import dev.reactfuscator.model.ClassModel;
 import dev.reactfuscator.service.ExceptionSupportFactory;
-import dev.reactfuscator.transform.*;
+import dev.reactfuscator.transform.Transformer;
+import dev.reactfuscator.transform.TransformerDescriptor;
 
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.JumpInsnNode;
+import org.objectweb.asm.tree.LabelNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TryCatchBlockNode;
 
 public final class ExceptionFlowTransformer implements Transformer {
     private final ExceptionSupportFactory factory;

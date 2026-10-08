@@ -1,16 +1,32 @@
 package dev.reactfuscator.analysis.leak;
 
 import dev.reactfuscator.analysis.KeepPolicy;
-import dev.reactfuscator.mapping.*;
-import dev.reactfuscator.model.*;
+import dev.reactfuscator.mapping.MappingModel;
+import dev.reactfuscator.model.LeakFinding;
+import dev.reactfuscator.model.LeakSnapshot;
+import dev.reactfuscator.model.ProtectionReport;
+import dev.reactfuscator.model.RunStatistics;
 
-import org.objectweb.asm.*;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.AnnotationNode;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.InvokeDynamicInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MethodNode;
 
-import java.io.*;
-import java.nio.*;
-import java.nio.charset.*;
-import java.util.*;
+import java.io.IOException;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 public final class LeakScannerService {
     private final ConstantPoolReader constants;

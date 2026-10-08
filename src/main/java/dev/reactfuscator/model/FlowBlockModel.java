@@ -1,6 +1,7 @@
 package dev.reactfuscator.model;
 
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.LabelNode;
 
 import java.util.List;
 

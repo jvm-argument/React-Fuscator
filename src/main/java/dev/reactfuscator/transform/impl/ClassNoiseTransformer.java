@@ -3,12 +3,26 @@ package dev.reactfuscator.transform.impl;
 import dev.reactfuscator.config.ProtectionProfile;
 import dev.reactfuscator.core.ObfuscationContext;
 import dev.reactfuscator.model.ClassModel;
-import dev.reactfuscator.transform.*;
+import dev.reactfuscator.transform.Transformer;
+import dev.reactfuscator.transform.TransformerDescriptor;
 
-import org.objectweb.asm.*;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.InvokeDynamicInsnNode;
+import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TryCatchBlockNode;
+import org.objectweb.asm.tree.TypeInsnNode;
+import org.objectweb.asm.tree.VarInsnNode;
 
-import java.util.*;
+import java.util.ArrayList;
 
 public final class ClassNoiseTransformer implements Transformer {
     public TransformerDescriptor descriptor() {
@@ -43,10 +57,10 @@ public final class ClassNoiseTransformer implements Transformer {
         if (source == null) {
             for (MethodNode m : model.node().methods) {
                 if (context.eligible(model, m, "classnoise") && !m.name.startsWith("<")) {
-                    for (AbstractInsnNode n : m.instructions) {
-                        if (integer(n)) {
+                    for (AbstractInsnNode instruction : m.instructions) {
+                        if (integer(instruction)) {
                             caller = m;
-                            literal = n;
+                            literal = instruction;
                             break;
                         }
                     }
@@ -166,17 +180,17 @@ public final class ClassNoiseTransformer implements Transformer {
         context.changed("classnoise");
     }
 
-    private boolean integer(AbstractInsnNode n) {
-        int op = n.getOpcode();
+    private boolean integer(AbstractInsnNode instruction) {
+        int op = instruction.getOpcode();
         return (op >= Opcodes.ICONST_M1 && op <= Opcodes.ICONST_5)
                 || op == Opcodes.BIPUSH
                 || op == Opcodes.SIPUSH
-                || (n instanceof LdcInsnNode l && l.cst instanceof Integer);
+                || (instruction instanceof LdcInsnNode l && l.cst instanceof Integer);
     }
 
     private boolean pure(MethodNode method) {
-        for (Type t : Type.getArgumentTypes(method.desc)) {
-            if (!safeType(t)) {
+        for (Type valueType : Type.getArgumentTypes(method.desc)) {
+            if (!safeType(valueType)) {
                 return false;
             }
         }
@@ -188,27 +202,30 @@ public final class ClassNoiseTransformer implements Transformer {
                 return false;
             }
         }
-        for (AbstractInsnNode n : method.instructions) {
-            if (n instanceof InvokeDynamicInsnNode || n instanceof FieldInsnNode) {
+        for (AbstractInsnNode instruction : method.instructions) {
+            if (instruction instanceof InvokeDynamicInsnNode
+                    || instruction instanceof FieldInsnNode) {
                 return false;
             }
-            if (n instanceof MethodInsnNode m && !m.owner.startsWith("java/")) {
+            if (instruction instanceof MethodInsnNode invocation
+                    && !invocation.owner.startsWith("java/")) {
                 return false;
             }
-            if (n instanceof TypeInsnNode t && !t.desc.startsWith("java/")) {
+            if (instruction instanceof TypeInsnNode t && !t.desc.startsWith("java/")) {
                 return false;
             }
-            if (n instanceof LdcInsnNode l && l.cst instanceof Type t && !safeType(t)) {
+            if (instruction instanceof LdcInsnNode l && l.cst instanceof Type t && !safeType(t)) {
                 return false;
             }
         }
         return method.instructions.size() > 2;
     }
 
-    private boolean safeType(Type t) {
-        if (t.getSort() == Type.ARRAY) {
-            return safeType(t.getElementType());
+    private boolean safeType(Type valueType) {
+        if (valueType.getSort() == Type.ARRAY) {
+            return safeType(valueType.getElementType());
         }
-        return t.getSort() != Type.OBJECT || t.getInternalName().startsWith("java/");
+        return valueType.getSort() != Type.OBJECT
+                || valueType.getInternalName().startsWith("java/");
     }
 }

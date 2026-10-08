@@ -1,15 +1,35 @@
 package dev.reactfuscator.mapping;
 
-import dev.reactfuscator.analysis.*;
+import dev.reactfuscator.analysis.ClassInfo;
+import dev.reactfuscator.analysis.HierarchyService;
+import dev.reactfuscator.analysis.KeepPolicy;
 import dev.reactfuscator.config.ObfuscationConfig;
-import dev.reactfuscator.model.*;
+import dev.reactfuscator.model.ArchiveModel;
+import dev.reactfuscator.model.ClassModel;
 import dev.reactfuscator.util.NameFactory;
 
-import org.objectweb.asm.*;
-import org.objectweb.asm.commons.*;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ConstantDynamic;
+import org.objectweb.asm.Handle;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.commons.ClassRemapper;
+import org.objectweb.asm.commons.Remapper;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.TreeMap;
 
 public final class PackageLayoutPlanner {
     public Map<String, String> plan(
@@ -23,18 +43,18 @@ public final class PackageLayoutPlanner {
         archive.classes().keySet().forEach(n -> roots.put(n, n));
         Set<String> anchored = new HashSet<>();
         for (ClassModel model : archive.classes().values()) {
-            ClassNode c = model.node();
-            String source = c.name;
-            if (c.nestHostClass != null) {
-                join(roots, source, c.nestHostClass);
+            ClassNode classNode = model.node();
+            String source = classNode.name;
+            if (classNode.nestHostClass != null) {
+                join(roots, source, classNode.nestHostClass);
             }
-            if (c.nestMembers != null) {
-                c.nestMembers.forEach(n -> join(roots, source, n));
+            if (classNode.nestMembers != null) {
+                classNode.nestMembers.forEach(n -> join(roots, source, n));
             }
-            for (MethodNode method : c.methods) {
+            for (MethodNode method : classNode.methods) {
                 if ((method.access & (Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC)) == 0) {
                     Set<String> seen = new HashSet<>();
-                    for (String parent = c.superName;
+                    for (String parent = classNode.superName;
                             parent != null && seen.add(parent);
                             parent = hierarchy.resolve(parent).parent()) {
                         Integer access =
@@ -70,7 +90,7 @@ public final class PackageLayoutPlanner {
                             return target;
                         }
                     };
-            c.accept(
+            classNode.accept(
                     new ClassRemapper(
                             new ClassVisitor(Opcodes.ASM9) {
                                 @Override

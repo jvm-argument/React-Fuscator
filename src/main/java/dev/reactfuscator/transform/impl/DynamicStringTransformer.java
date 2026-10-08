@@ -4,12 +4,24 @@ import dev.reactfuscator.config.ProtectionProfile;
 import dev.reactfuscator.core.ObfuscationContext;
 import dev.reactfuscator.model.ClassModel;
 import dev.reactfuscator.service.StringCipherService;
-import dev.reactfuscator.transform.*;
+import dev.reactfuscator.transform.Transformer;
+import dev.reactfuscator.transform.TransformerDescriptor;
 
-import org.objectweb.asm.*;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.Handle;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.InvokeDynamicInsnNode;
+import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TypeInsnNode;
+import org.objectweb.asm.tree.VarInsnNode;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public final class DynamicStringTransformer implements Transformer {
     private final StringCipherService cipher;
@@ -39,8 +51,8 @@ public final class DynamicStringTransformer implements Transformer {
                 "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;I)Ljava/lang/invoke/CallSite;";
         for (MethodNode method : List.copyOf(model.node().methods)) {
             if (context.eligible(model, method, "indystrings")) {
-                for (AbstractInsnNode n : method.instructions.toArray()) {
-                    if (n instanceof LdcInsnNode literal
+                for (AbstractInsnNode instruction : method.instructions.toArray()) {
+                    if (instruction instanceof LdcInsnNode literal
                             && literal.cst instanceof String text
                             && !text.isEmpty()
                             && text.length() <= 16000
@@ -62,7 +74,7 @@ public final class DynamicStringTransformer implements Transformer {
                                         false);
                         int key = context.random().nextInt();
                         method.instructions.set(
-                                n,
+                                instruction,
                                 new InvokeDynamicInsnNode(
                                         context.names().next(),
                                         "()Ljava/lang/String;",

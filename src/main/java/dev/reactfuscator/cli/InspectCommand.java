@@ -1,14 +1,20 @@
 package dev.reactfuscator.cli;
 
-import dev.reactfuscator.analysis.*;
+import dev.reactfuscator.analysis.DependencyAnalyzer;
+import dev.reactfuscator.analysis.HierarchyService;
 import dev.reactfuscator.io.JarReader;
 import dev.reactfuscator.model.ArchiveModel;
 
-import picocli.CommandLine.*;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Model;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
+import picocli.CommandLine.Spec;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Callable;
 
 @Command(

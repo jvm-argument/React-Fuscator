@@ -2,9 +2,11 @@ package dev.reactfuscator.gui;
 
 import dev.reactfuscator.core.ApplicationFactory;
 
-import java.awt.*;
+import java.awt.Dimension;
 
-import javax.swing.*;
+import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
+import javax.swing.WindowConstants;
 
 public final class GuiLauncher {
     private final ApplicationFactory factory;

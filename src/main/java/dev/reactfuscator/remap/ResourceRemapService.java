@@ -1,14 +1,26 @@
 package dev.reactfuscator.remap;
 
-import dev.reactfuscator.config.*;
+import dev.reactfuscator.config.ObfuscationConfig;
+import dev.reactfuscator.config.RuleMatcher;
 import dev.reactfuscator.mapping.MappingModel;
-import dev.reactfuscator.model.*;
+import dev.reactfuscator.model.ArchiveModel;
+import dev.reactfuscator.model.RunStatistics;
 
-import java.io.*;
-import java.nio.*;
-import java.nio.charset.*;
-import java.util.*;
-import java.util.jar.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.jar.Attributes;
+import java.util.jar.Manifest;
 import java.util.regex.Pattern;
 
 public final class ResourceRemapService {
@@ -16,7 +28,7 @@ public final class ResourceRemapService {
             ArchiveModel archive,
             MappingModel mapping,
             ObfuscationConfig config,
-            RunStatistics stats)
+            RunStatistics runStatistics)
             throws IOException {
         RuleMatcher patterns = new RuleMatcher(config.resourcePatterns);
         Map<String, byte[]> result = new LinkedHashMap<>();
@@ -52,7 +64,7 @@ public final class ResourceRemapService {
         archive.resources().clear();
         archive.resources().putAll(result);
         if (signed) {
-            stats.warnings.add(
+            runStatistics.warnings.add(
                     "Old JAR signatures and index removed because transformed bytes invalidate"
                             + " signatures. Re-sign the output if required.");
         }

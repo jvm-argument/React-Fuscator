@@ -1,6 +1,7 @@
 package dev.reactfuscator.model;
 
-import java.util.*;
+import java.util.Map;
+import java.util.Set;
 
 public record LeakSnapshot(
         Set<String> classes,

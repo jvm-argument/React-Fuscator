@@ -1,25 +1,39 @@
 package dev.reactfuscator.testing;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.google.gson.*;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
-import dev.reactfuscator.config.*;
-import dev.reactfuscator.core.*;
-import dev.reactfuscator.model.*;
-import dev.reactfuscator.service.*;
+import dev.reactfuscator.config.ObfuscationConfig;
+import dev.reactfuscator.config.ProtectionProfile;
+import dev.reactfuscator.core.ApplicationFactory;
+import dev.reactfuscator.model.ObfuscationResult;
+import dev.reactfuscator.service.CancellationToken;
+import dev.reactfuscator.service.ProgressListener;
 
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.*;
-import org.objectweb.asm.*;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
-import java.util.*;
-import java.util.zip.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public final class PipelineIntegrationTest {
     @TempDir Path directory;
@@ -152,9 +166,10 @@ public class Main {
         try (ZipFile zip = new ZipFile(result.output().toFile())) {
             for (ZipEntry entry : Collections.list(zip.entries())) {
                 if (entry.getName().endsWith(".class")) {
-                    ClassNode c = new ClassNode();
-                    new ClassReader(zip.getInputStream(entry)).accept(c, ClassReader.SKIP_CODE);
-                    assertEquals(release + 44, c.version);
+                    ClassNode classNode = new ClassNode();
+                    new ClassReader(zip.getInputStream(entry))
+                            .accept(classNode, ClassReader.SKIP_CODE);
+                    assertEquals(release + 44, classNode.version);
                 }
             }
         }

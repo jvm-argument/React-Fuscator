@@ -1,10 +1,17 @@
 package dev.reactfuscator.service;
 
 import dev.reactfuscator.core.ObfuscationContext;
-import dev.reactfuscator.model.*;
+import dev.reactfuscator.model.ClassModel;
 
-import org.objectweb.asm.*;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TypeInsnNode;
+import org.objectweb.asm.tree.VarInsnNode;
 
 public final class ExceptionSupportFactory {
     public record Support(String owner, String field) {

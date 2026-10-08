@@ -2,11 +2,27 @@ package dev.reactfuscator.analysis;
 
 import dev.reactfuscator.model.ArchiveModel;
 
-import org.objectweb.asm.*;
-import org.objectweb.asm.tree.*;
-import org.objectweb.asm.tree.analysis.*;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TypeInsnNode;
+import org.objectweb.asm.tree.VarInsnNode;
+import org.objectweb.asm.tree.analysis.Analyzer;
+import org.objectweb.asm.tree.analysis.AnalyzerException;
+import org.objectweb.asm.tree.analysis.Frame;
+import org.objectweb.asm.tree.analysis.SourceInterpreter;
+import org.objectweb.asm.tree.analysis.SourceValue;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Set;
 
 public final class ReflectionAnalyzer {
     public void analyze(
@@ -19,11 +35,11 @@ public final class ReflectionAnalyzer {
             return;
         }
         boolean relevant = false;
-        for (AbstractInsnNode n : method.instructions) {
-            if (n instanceof MethodInsnNode c
-                    && c.owner.equals("java/lang/Class")
+        for (AbstractInsnNode instruction : method.instructions) {
+            if (instruction instanceof MethodInsnNode invocation
+                    && invocation.owner.equals("java/lang/Class")
                     && Set.of("getMethod", "getDeclaredMethod", "getField", "getDeclaredField")
-                            .contains(c.name)) {
+                            .contains(invocation.name)) {
                 relevant = true;
             }
         }
@@ -136,20 +152,21 @@ public final class ReflectionAnalyzer {
         if (depth > 12) {
             return -1;
         }
-        for (AbstractInsnNode n : value.insns) {
-            if (n instanceof VarInsnNode v && v.getOpcode() == Opcodes.ALOAD) {
-                int i = method.instructions.indexOf(n);
+        for (AbstractInsnNode instruction : value.insns) {
+            if (instruction instanceof VarInsnNode variableInstruction
+                    && variableInstruction.getOpcode() == Opcodes.ALOAD) {
+                int i = method.instructions.indexOf(instruction);
                 if (i < 0 || frames[i] == null) {
                     continue;
                 }
-                SourceValue local = frames[i].getLocal(v.var);
+                SourceValue local = frames[i].getLocal(variableInstruction.var);
                 if (local.insns.isEmpty()) {
                     int slot = (method.access & Opcodes.ACC_STATIC) == 0 ? 1 : 0, index = 0;
-                    for (Type t : Type.getArgumentTypes(method.desc)) {
-                        if (slot == v.var) {
+                    for (Type valueType : Type.getArgumentTypes(method.desc)) {
+                        if (slot == variableInstruction.var) {
                             return index;
                         }
-                        slot += t.getSize();
+                        slot += valueType.getSize();
                         index++;
                     }
                 } else {
@@ -168,8 +185,8 @@ public final class ReflectionAnalyzer {
         for (var model : archive.classes().values()) {
             for (MethodNode caller : model.node().methods) {
                 boolean relevant = false;
-                for (AbstractInsnNode n : caller.instructions) {
-                    if (n instanceof MethodInsnNode call
+                for (AbstractInsnNode instruction : caller.instructions) {
+                    if (instruction instanceof MethodInsnNode call
                             && call.owner.equals(owner)
                             && call.name.equals(target.name)
                             && call.desc.equals(target.desc)) {
@@ -223,9 +240,9 @@ public final class ReflectionAnalyzer {
             int i = method.instructions.indexOf(source);
             Frame<SourceValue> frame = i < 0 ? null : frames[i];
             if (source instanceof LdcInsnNode ldc
-                    && ldc.cst instanceof Type t
-                    && t.getSort() == Type.OBJECT) {
-                result.add(t.getInternalName());
+                    && ldc.cst instanceof Type valueType
+                    && valueType.getSort() == Type.OBJECT) {
+                result.add(valueType.getInternalName());
             } else if (source instanceof VarInsnNode var
                     && frame != null
                     && var.getOpcode() == Opcodes.ALOAD) {
@@ -242,8 +259,8 @@ public final class ReflectionAnalyzer {
                                 method,
                                 frames,
                                 depth + 1));
-            } else if (source instanceof MethodInsnNode c
-                    && c.name.equals("getClass")
+            } else if (source instanceof MethodInsnNode invocation
+                    && invocation.name.equals("getClass")
                     && frame != null) {
                 result.addAll(
                         objectTypes(
@@ -285,10 +302,10 @@ public final class ReflectionAnalyzer {
             int i = method.instructions.indexOf(source);
             Frame<SourceValue> frame = i < 0 ? null : frames[i];
             Type type = null;
-            if (source instanceof FieldInsnNode f) {
-                type = Type.getType(f.desc);
-            } else if (source instanceof MethodInsnNode c) {
-                type = Type.getReturnType(c.desc);
+            if (source instanceof FieldInsnNode fieldAccess) {
+                type = Type.getType(fieldAccess.desc);
+            } else if (source instanceof MethodInsnNode invocation) {
+                type = Type.getReturnType(invocation.desc);
             } else if (source instanceof TypeInsnNode t
                     && (t.getOpcode() == Opcodes.NEW || t.getOpcode() == Opcodes.CHECKCAST)) {
                 type = Type.getObjectType(t.desc);
@@ -337,16 +354,20 @@ public final class ReflectionAnalyzer {
             return Set.of();
         }
         Set<String> result = new HashSet<>();
-        for (AbstractInsnNode n : value.insns) {
-            if (n instanceof LdcInsnNode l && l.cst instanceof String s) {
+        for (AbstractInsnNode instruction : value.insns) {
+            if (instruction instanceof LdcInsnNode l && l.cst instanceof String s) {
                 result.add(s);
-            } else if (n instanceof VarInsnNode v) {
-                int i = method.instructions.indexOf(n);
+            } else if (instruction instanceof VarInsnNode variableInstruction) {
+                int i = method.instructions.indexOf(instruction);
                 if (i >= 0 && frames[i] != null) {
-                    if (v.getOpcode() == Opcodes.ALOAD) {
+                    if (variableInstruction.getOpcode() == Opcodes.ALOAD) {
                         result.addAll(
-                                strings(frames[i].getLocal(v.var), method, frames, depth + 1));
-                    } else if (v.getOpcode() == Opcodes.ASTORE) {
+                                strings(
+                                        frames[i].getLocal(variableInstruction.var),
+                                        method,
+                                        frames,
+                                        depth + 1));
+                    } else if (variableInstruction.getOpcode() == Opcodes.ASTORE) {
                         result.addAll(
                                 strings(
                                         frames[i].getStack(frames[i].getStackSize() - 1),

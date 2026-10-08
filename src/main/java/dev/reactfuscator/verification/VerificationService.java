@@ -2,9 +2,13 @@ package dev.reactfuscator.verification;
 
 import dev.reactfuscator.analysis.HierarchyService;
 
-import org.objectweb.asm.*;
-import org.objectweb.asm.tree.*;
-import org.objectweb.asm.tree.analysis.*;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.analysis.Analyzer;
+import org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.objectweb.asm.util.CheckClassAdapter;
 
 public final class VerificationService {

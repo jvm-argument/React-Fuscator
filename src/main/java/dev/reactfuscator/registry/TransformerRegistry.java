@@ -2,7 +2,12 @@ package dev.reactfuscator.registry;
 
 import dev.reactfuscator.transform.Transformer;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.ServiceLoader;
+import java.util.Set;
 
 public final class TransformerRegistry {
     private final Map<String, Transformer> transformers = new LinkedHashMap<>();

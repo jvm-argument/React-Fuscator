@@ -2,10 +2,15 @@ package dev.reactfuscator.service;
 
 import dev.reactfuscator.runtime.ConcatBootstrapTemplate;
 
-import org.objectweb.asm.*;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MethodNode;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
 
 public final class ConcatBootstrapFactory {
     public MethodNode create(String owner, String name, String decoder) {

@@ -1,12 +1,17 @@
 package dev.reactfuscator.testing;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.reactfuscator.analysis.KeepPolicy;
-import dev.reactfuscator.config.*;
-import dev.reactfuscator.mapping.*;
-import dev.reactfuscator.model.*;
-import dev.reactfuscator.platform.fabric.*;
+import dev.reactfuscator.config.ObfuscationConfig;
+import dev.reactfuscator.config.RuleMatcher;
+import dev.reactfuscator.mapping.MappingModel;
+import dev.reactfuscator.mapping.MemberKey;
+import dev.reactfuscator.model.ArchiveModel;
+import dev.reactfuscator.model.ClassModel;
+import dev.reactfuscator.platform.fabric.AccessWidenerHandler;
+import dev.reactfuscator.platform.fabric.FabricMetadataHandler;
 import dev.reactfuscator.platform.paper.PaperMetadataHandler;
 
 import org.junit.jupiter.api.Test;

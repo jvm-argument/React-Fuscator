@@ -1,11 +1,15 @@
 package dev.reactfuscator.cli;
 
-import dev.reactfuscator.config.*;
+import dev.reactfuscator.config.ConfigParser;
+import dev.reactfuscator.config.ObfuscationConfig;
 import dev.reactfuscator.core.ApplicationFactory;
 import dev.reactfuscator.gui.GuiLauncher;
 
 import picocli.CommandLine;
-import picocli.CommandLine.*;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Model;
+import picocli.CommandLine.Parameters;
+import picocli.CommandLine.Spec;
 
 import java.nio.file.Path;
 import java.util.concurrent.Callable;

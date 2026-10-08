@@ -1,7 +1,12 @@
 package dev.reactfuscator.analysis.leak;
 
-import java.io.*;
-import java.util.*;
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public final class ConstantPoolReader {
     public record Pool(List<String> utf8, Set<String> literals) {

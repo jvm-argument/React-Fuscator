@@ -1,12 +1,29 @@
 package dev.reactfuscator.analysis;
 
-import dev.reactfuscator.model.*;
+import dev.reactfuscator.model.ArchiveModel;
+import dev.reactfuscator.model.ClassModel;
+import dev.reactfuscator.model.RunStatistics;
 
-import org.objectweb.asm.*;
-import org.objectweb.asm.commons.*;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.commons.ClassRemapper;
+import org.objectweb.asm.commons.Remapper;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.AnnotationNode;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.InvokeDynamicInsnNode;
+import org.objectweb.asm.tree.JumpInsnNode;
+import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MethodNode;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public final class CompatibilityAnalyzer {
     private final ReflectionAnalyzer reflection;
@@ -33,58 +50,68 @@ public final class CompatibilityAnalyzer {
             ArchiveModel archive,
             KeepPolicy keeps,
             HierarchyService hierarchy,
-            RunStatistics stats) {
+            RunStatistics runStatistics) {
         nativeInterop.analyze(archive, keeps, hierarchy);
         Set<String> names = new HashSet<>();
         boolean multiRelease =
                 archive.resources().keySet().stream()
                         .anyMatch(p -> p.startsWith("META-INF/versions/") && p.endsWith(".class"));
         for (ClassModel model : archive.classes().values()) {
-            ClassNode c = model.node();
+            ClassNode classNode = model.node();
             if (multiRelease) {
-                keeps.keepClass(c.name, "Multi-release ABI is preserved across variants");
+                keeps.keepClass(classNode.name, "Multi-release ABI is preserved across variants");
             }
-            if (c.module != null) {
+            if (classNode.module != null) {
                 keeps.dynamicClasses();
             }
-            if ((c.access & (Opcodes.ACC_ENUM | Opcodes.ACC_RECORD | Opcodes.ACC_ANNOTATION))
+            if ((classNode.access
+                            & (Opcodes.ACC_ENUM | Opcodes.ACC_RECORD | Opcodes.ACC_ANNOTATION))
                     != 0) {
                 if (keeps.preserveSerializationNames()) {
-                    keeps.keepClass(c.name, "Enum/record/annotation identity");
+                    keeps.keepClass(classNode.name, "Enum/record/annotation identity");
                 }
-                if ((c.access & Opcodes.ACC_RECORD) != 0
-                        || (c.access & Opcodes.ACC_ANNOTATION) != 0) {
-                    keeps.keepMembersOf(c.name);
+                if ((classNode.access & Opcodes.ACC_RECORD) != 0
+                        || (classNode.access & Opcodes.ACC_ANNOTATION) != 0) {
+                    keeps.keepMembersOf(classNode.name);
                 }
-                if ((c.access & Opcodes.ACC_ENUM) != 0) {
-                    for (MethodNode m : c.methods) {
-                        if (Set.of("values", "valueOf").contains(m.name)) {
-                            keeps.keepMember(c.name, m.name, m.desc, "Enum lookup contract");
+                if ((classNode.access & Opcodes.ACC_ENUM) != 0) {
+                    for (MethodNode methodNode : classNode.methods) {
+                        if (Set.of("values", "valueOf").contains(methodNode.name)) {
+                            keeps.keepMember(
+                                    classNode.name,
+                                    methodNode.name,
+                                    methodNode.desc,
+                                    "Enum lookup contract");
                         }
                     }
-                    for (FieldNode f : c.fields) {
-                        if ((f.access & Opcodes.ACC_ENUM) != 0) {
-                            keeps.keepMember(c.name, f.name, f.desc, "Enum constant contract");
+                    for (FieldNode fieldNode : classNode.fields) {
+                        if ((fieldNode.access & Opcodes.ACC_ENUM) != 0) {
+                            keeps.keepMember(
+                                    classNode.name,
+                                    fieldNode.name,
+                                    fieldNode.desc,
+                                    "Enum constant contract");
                         }
                     }
                 }
             }
-            if (c.name.endsWith("/package-info") || c.name.equals("module-info")) {
-                keeps.untouchedClass(c.name, "Package/module metadata");
+            if (classNode.name.endsWith("/package-info") || classNode.name.equals("module-info")) {
+                keeps.untouchedClass(classNode.name, "Package/module metadata");
             }
-            if ((c.access & Opcodes.ACC_ENUM) == 0
-                    && (hierarchy.assignable("java/io/Serializable", c.name)
-                            || hierarchy.assignable("java/io/Externalizable", c.name))) {
+            if ((classNode.access & Opcodes.ACC_ENUM) == 0
+                    && (hierarchy.assignable("java/io/Serializable", classNode.name)
+                            || hierarchy.assignable("java/io/Externalizable", classNode.name))) {
                 if (keeps.preserveSerializationNames()) {
-                    keeps.keepClass(c.name, "Serialization ABI");
+                    keeps.keepClass(classNode.name, "Serialization ABI");
                 }
-                for (FieldNode f : c.fields) {
+                for (FieldNode f : classNode.fields) {
                     if ((f.access & (Opcodes.ACC_STATIC | Opcodes.ACC_TRANSIENT)) == 0
                             || f.name.equals("serialPersistentFields")) {
-                        keeps.keepMember(c.name, f.name, f.desc, "Java serialization field layout");
+                        keeps.keepMember(
+                                classNode.name, f.name, f.desc, "Java serialization field layout");
                     }
                 }
-                for (MethodNode m : c.methods) {
+                for (MethodNode m : classNode.methods) {
                     if (Set.of(
                                     "readObject",
                                     "writeObject",
@@ -92,44 +119,46 @@ public final class CompatibilityAnalyzer {
                                     "writeReplace",
                                     "readResolve")
                             .contains(m.name)) {
-                        keeps.keepMember(c.name, m.name, m.desc, "Java serialization hook");
+                        keeps.keepMember(classNode.name, m.name, m.desc, "Java serialization hook");
                     }
                 }
             }
-            annotations(c.visibleAnnotations, archive, keeps);
-            annotations(c.invisibleAnnotations, archive, keeps);
-            if (hasAnnotation(c, "Lkotlin/Metadata;")) {
-                keeps.keepClass(c.name, "Kotlin metadata ABI");
-                keeps.keepMembersOf(c.name);
+            annotations(classNode.visibleAnnotations, archive, keeps);
+            annotations(classNode.invisibleAnnotations, archive, keeps);
+            if (hasAnnotation(classNode, "Lkotlin/Metadata;")) {
+                keeps.keepClass(classNode.name, "Kotlin metadata ABI");
+                keeps.keepMembersOf(classNode.name);
             }
-            if (hasAnnotation(c, "Lorg/spongepowered/asm/mixin/Mixin;")) {
-                keeps.preserveCode(c.name);
-                keeps.keepMembersOf(c.name);
+            if (hasAnnotation(classNode, "Lorg/spongepowered/asm/mixin/Mixin;")) {
+                keeps.preserveCode(classNode.name);
+                keeps.keepMembersOf(classNode.name);
                 if (!keeps.renameMixins()) {
-                    keeps.keepClass(c.name, "Mixin bytecode and selectors");
+                    keeps.keepClass(classNode.name, "Mixin bytecode and selectors");
                 }
             }
-            for (FieldNode f : c.fields) {
+            for (FieldNode f : classNode.fields) {
                 annotations(f.visibleAnnotations, archive, keeps);
                 annotations(f.invisibleAnnotations, archive, keeps);
                 if (annotationContracts.requiresMemberName(f.visibleAnnotations)
                         || annotationContracts.requiresMemberName(f.invisibleAnnotations)) {
-                    keeps.keepMember(c.name, f.name, f.desc, "Unknown annotated field contract");
+                    keeps.keepMember(
+                            classNode.name, f.name, f.desc, "Unknown annotated field contract");
                 }
                 if (f.value instanceof String s) {
                     names.add(s);
                 }
             }
-            for (MethodNode m : c.methods) {
-                reflection.analyze(c, m, archive, keeps, hierarchy);
+            for (MethodNode m : classNode.methods) {
+                reflection.analyze(classNode, m, archive, keeps, hierarchy);
                 annotations(m.visibleAnnotations, archive, keeps);
                 annotations(m.invisibleAnnotations, archive, keeps);
                 if ((m.access & Opcodes.ACC_NATIVE) != 0) {
-                    keeps.keepClass(c.name, "JNI native name contract");
+                    keeps.keepClass(classNode.name, "JNI native name contract");
                 }
                 if (annotationContracts.requiresMemberName(m.visibleAnnotations)
                         || annotationContracts.requiresMemberName(m.invisibleAnnotations)) {
-                    keeps.keepMember(c.name, m.name, m.desc, "Unknown annotated method contract");
+                    keeps.keepMember(
+                            classNode.name, m.name, m.desc, "Unknown annotated method contract");
                 }
                 for (AbstractInsnNode instruction : m.instructions) {
                     if (instruction instanceof LdcInsnNode ldc && ldc.cst instanceof String s) {
@@ -151,7 +180,10 @@ public final class CompatibilityAnalyzer {
                         if (call.owner.equals("java/lang/invoke/MethodHandles$Lookup")
                                 && call.name.startsWith("find")) {
                             keeps.dynamicMembers(
-                                    c.name + "#" + m.name + ": dynamic method handle lookup");
+                                    classNode.name
+                                            + "#"
+                                            + m.name
+                                            + ": dynamic method handle lookup");
                         }
                     }
                 }
@@ -223,18 +255,18 @@ public final class CompatibilityAnalyzer {
             }
         }
         if (keeps.hasDynamicClasses()) {
-            stats.warnings.add(
+            runStatistics.warnings.add(
                     "Dynamic class loading or module descriptor detected: class/package names"
                             + " retained. Use separate JAR boundaries to narrow protection scope.");
         }
         if (keeps.hasDynamicMembers()) {
-            stats.warnings.add(
+            runStatistics.warnings.add(
                     "Dynamic member reflection detected: member names retained; bytecode transforms"
                             + " remain enabled.");
         }
-        stats.warnings.addAll(keeps.dynamicMemberReasons());
+        runStatistics.warnings.addAll(keeps.dynamicMemberReasons());
         if (multiRelease) {
-            stats.warnings.add(
+            runStatistics.warnings.add(
                     "Multi-release class variants preserved byte-for-byte; root ABI names"
                             + " retained.");
         }

@@ -3,13 +3,38 @@ package dev.reactfuscator.transform.impl;
 import dev.reactfuscator.analysis.ControlFlowGraphAnalyzer;
 import dev.reactfuscator.config.ProtectionProfile;
 import dev.reactfuscator.core.ObfuscationContext;
-import dev.reactfuscator.model.*;
-import dev.reactfuscator.transform.*;
+import dev.reactfuscator.model.ClassModel;
+import dev.reactfuscator.model.FlowBlockModel;
+import dev.reactfuscator.model.FlowGraphModel;
+import dev.reactfuscator.transform.Transformer;
+import dev.reactfuscator.transform.TransformerDescriptor;
 
-import org.objectweb.asm.*;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.FrameNode;
+import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.JumpInsnNode;
+import org.objectweb.asm.tree.LabelNode;
+import org.objectweb.asm.tree.LineNumberNode;
+import org.objectweb.asm.tree.LookupSwitchInsnNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TableSwitchInsnNode;
+import org.objectweb.asm.tree.TypeInsnNode;
+import org.objectweb.asm.tree.VarInsnNode;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 public final class ControlFlowFlatteningTransformer implements Transformer {
     private final ControlFlowGraphAnalyzer analyzer;
@@ -70,8 +95,8 @@ public final class ControlFlowFlatteningTransformer implements Transformer {
         }
         InsnList out = new InsnList();
         int arguments = (method.access & Opcodes.ACC_STATIC) == 0 ? 1 : 0;
-        for (Type t : Type.getArgumentTypes(method.desc)) {
-            arguments += t.getSize();
+        for (Type valueType : Type.getArgumentTypes(method.desc)) {
+            arguments += valueType.getSize();
         }
         for (int slot = arguments; slot < graph.localTypes().length; slot++) {
             Type type = graph.localTypes()[slot];

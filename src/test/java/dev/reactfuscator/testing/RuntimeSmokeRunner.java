@@ -1,8 +1,10 @@
 package dev.reactfuscator.testing;
 
-import java.io.*;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 

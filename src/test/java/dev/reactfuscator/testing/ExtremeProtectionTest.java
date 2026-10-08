@@ -1,20 +1,26 @@
 package dev.reactfuscator.testing;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import dev.reactfuscator.analysis.leak.DebugAttributeInspector;
-import dev.reactfuscator.config.*;
+import dev.reactfuscator.config.ObfuscationConfig;
+import dev.reactfuscator.config.ProtectionProfile;
 import dev.reactfuscator.runtime.StringCipherTemplate;
 import dev.reactfuscator.service.StringCipherService;
 
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.objectweb.asm.*;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.tree.ClassNode;
 
-import java.nio.file.*;
-import java.util.*;
-import java.util.zip.*;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public final class ExtremeProtectionTest {
     @TempDir Path directory;

@@ -1,15 +1,23 @@
 package dev.reactfuscator.cli;
 
-import dev.reactfuscator.config.*;
+import dev.reactfuscator.config.ConfigParser;
+import dev.reactfuscator.config.ObfuscationConfig;
+import dev.reactfuscator.config.ProtectionProfile;
+import dev.reactfuscator.config.TransformerSettings;
 import dev.reactfuscator.core.ApplicationFactory;
 import dev.reactfuscator.model.ObfuscationResult;
 import dev.reactfuscator.registry.TransformerRegistry;
 import dev.reactfuscator.service.CancellationToken;
 
-import picocli.CommandLine.*;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Model;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
+import picocli.CommandLine.Spec;
 
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Callable;
 
 @Command(

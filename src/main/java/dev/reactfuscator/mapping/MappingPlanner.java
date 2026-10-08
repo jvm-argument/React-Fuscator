@@ -3,12 +3,17 @@ package dev.reactfuscator.mapping;
 import dev.reactfuscator.analysis.HierarchyService;
 import dev.reactfuscator.analysis.KeepPolicy;
 import dev.reactfuscator.config.ObfuscationConfig;
-import dev.reactfuscator.model.*;
+import dev.reactfuscator.model.ArchiveModel;
+import dev.reactfuscator.model.ClassModel;
 import dev.reactfuscator.util.NameFactory;
 
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.ClassNode;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public final class MappingPlanner {
     private final PackageLayoutPlanner packages;
@@ -34,12 +39,12 @@ public final class MappingPlanner {
                 .values()
                 .forEach(
                         model -> {
-                            ClassNode c = model.node();
-                            List<String> parents = new ArrayList<>(c.interfaces);
-                            if (c.superName != null) {
-                                parents.add(c.superName);
+                            ClassNode classNode = model.node();
+                            List<String> parents = new ArrayList<>(classNode.interfaces);
+                            if (classNode.superName != null) {
+                                parents.add(classNode.superName);
                             }
-                            mapping.parents().put(c.name, parents);
+                            mapping.parents().put(classNode.name, parents);
                         });
         Map<String, String> layout =
                 packages.plan(archive, config, keeps, hierarchy, mapping, names);

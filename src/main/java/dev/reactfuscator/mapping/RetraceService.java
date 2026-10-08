@@ -1,11 +1,15 @@
 package dev.reactfuscator.mapping;
 
-import com.google.gson.*;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import java.io.IOException;
-import java.nio.file.*;
-import java.util.*;
-import java.util.regex.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class RetraceService {
     public String retrace(Path mappingPath, String trace) throws IOException {

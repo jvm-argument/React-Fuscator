@@ -2,7 +2,8 @@ package dev.reactfuscator.analysis;
 
 import org.objectweb.asm.tree.AnnotationNode;
 
-import java.util.*;
+import java.util.List;
+import java.util.Set;
 
 public final class AnnotationContractAnalyzer {
     public boolean requiresMemberName(List<AnnotationNode> annotations) {

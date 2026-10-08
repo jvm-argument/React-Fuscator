@@ -8,7 +8,12 @@ import dev.reactfuscator.verification.VerificationService;
 
 import org.objectweb.asm.tree.ClassNode;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 public final class TransformerPipeline {
     private final TransformerRegistry registry;

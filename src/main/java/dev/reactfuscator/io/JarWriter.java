@@ -1,9 +1,13 @@
 package dev.reactfuscator.io;
 
-import java.io.*;
-import java.nio.file.*;
-import java.util.*;
-import java.util.zip.*;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.zip.CRC32;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 public final class JarWriter {
     private final AtomicFileWriter files;

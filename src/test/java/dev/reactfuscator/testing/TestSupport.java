@@ -1,15 +1,22 @@
 package dev.reactfuscator.testing;
 
-import dev.reactfuscator.config.*;
-import dev.reactfuscator.core.*;
-import dev.reactfuscator.io.*;
-import dev.reactfuscator.model.*;
-import dev.reactfuscator.service.*;
+import dev.reactfuscator.config.ObfuscationConfig;
+import dev.reactfuscator.core.ApplicationFactory;
+import dev.reactfuscator.io.AtomicFileWriter;
+import dev.reactfuscator.io.JarWriter;
+import dev.reactfuscator.model.ObfuscationResult;
+import dev.reactfuscator.service.CancellationToken;
+import dev.reactfuscator.service.ProgressListener;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
-import java.util.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import javax.tools.ToolProvider;

@@ -1,10 +1,17 @@
 package dev.reactfuscator.analysis;
 
-import dev.reactfuscator.config.*;
+import dev.reactfuscator.config.ObfuscationConfig;
+import dev.reactfuscator.config.RuleMatcher;
 
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.MethodNode;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 public final class KeepPolicy {
     private final Map<String, String> classes = new TreeMap<>();

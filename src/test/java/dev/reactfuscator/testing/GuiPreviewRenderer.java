@@ -4,12 +4,15 @@ import dev.reactfuscator.core.ApplicationFactory;
 import dev.reactfuscator.gui.ThemeService;
 import dev.reactfuscator.gui.WorkbenchPanel;
 
-import java.awt.*;
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import javax.imageio.ImageIO;
-import javax.swing.*;
+import javax.swing.SwingUtilities;
 
 public final class GuiPreviewRenderer {
     public static void main(String[] args) throws Exception {

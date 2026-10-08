@@ -1,7 +1,11 @@
 package dev.reactfuscator.runtime;
 
-import java.lang.invoke.*;
-import java.util.*;
+import java.lang.invoke.CallSite;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.lang.invoke.StringConcatFactory;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class ConcatBootstrapTemplate {
     private ConcatBootstrapTemplate() {

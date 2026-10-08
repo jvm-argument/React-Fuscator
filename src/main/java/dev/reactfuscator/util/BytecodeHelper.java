@@ -1,8 +1,13 @@
 package dev.reactfuscator.util;
 
-import org.objectweb.asm.*;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.CodeSizeEvaluator;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.IntInsnNode;
+import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.MethodNode;
 
 public final class BytecodeHelper {
     public AbstractInsnNode integer(int value) {

@@ -1,14 +1,30 @@
 package dev.reactfuscator.mapping;
 
-import dev.reactfuscator.analysis.*;
+import dev.reactfuscator.analysis.ClassInfo;
+import dev.reactfuscator.analysis.HierarchyService;
+import dev.reactfuscator.analysis.KeepPolicy;
 import dev.reactfuscator.config.ObfuscationConfig;
-import dev.reactfuscator.model.*;
+import dev.reactfuscator.model.ArchiveModel;
+import dev.reactfuscator.model.ClassModel;
 import dev.reactfuscator.util.NameFactory;
 
-import org.objectweb.asm.*;
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldNode;
+import org.objectweb.asm.tree.InvokeDynamicInsnNode;
+import org.objectweb.asm.tree.MethodNode;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public final class MemberMappingPlanner {
     public void plan(
@@ -21,14 +37,14 @@ public final class MemberMappingPlanner {
         Map<MemberKey, MemberKey> roots = new HashMap<>();
         Map<MemberKey, Integer> access = new LinkedHashMap<>();
         for (ClassModel model : archive.classes().values()) {
-            ClassNode c = model.node();
-            for (MethodNode m : c.methods) {
-                MemberKey key = new MemberKey(c.name, m.name, m.desc);
+            ClassNode classNode = model.node();
+            for (MethodNode methodNode : classNode.methods) {
+                MemberKey key = new MemberKey(classNode.name, methodNode.name, methodNode.desc);
                 mapping.methodDeclarations().add(key);
                 roots.put(key, key);
-                access.put(key, m.access);
-                for (AbstractInsnNode n : m.instructions) {
-                    if (n instanceof InvokeDynamicInsnNode indy) {
+                access.put(key, methodNode.access);
+                for (AbstractInsnNode instruction : methodNode.instructions) {
+                    if (instruction instanceof InvokeDynamicInsnNode indy) {
                         Type result = Type.getReturnType(indy.desc);
                         if (result.getSort() == Type.OBJECT
                                 && archive.classes().containsKey(result.getInternalName())) {
@@ -37,8 +53,10 @@ public final class MemberMappingPlanner {
                     }
                 }
             }
-            c.fields.forEach(
-                    f -> mapping.fieldDeclarations().add(new MemberKey(c.name, f.name, f.desc)));
+            classNode.fields.forEach(
+                    f ->
+                            mapping.fieldDeclarations()
+                                    .add(new MemberKey(classNode.name, f.name, f.desc)));
         }
         Set<MemberKey> external = new HashSet<>();
         for (ClassModel model : archive.classes().values()) {

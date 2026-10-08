@@ -2,7 +2,8 @@ package dev.reactfuscator.verification;
 
 import dev.reactfuscator.analysis.HierarchyService;
 
-import org.objectweb.asm.*;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.analysis.BasicValue;
 import org.objectweb.asm.tree.analysis.SimpleVerifier;

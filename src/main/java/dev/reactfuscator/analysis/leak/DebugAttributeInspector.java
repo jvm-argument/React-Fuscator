@@ -1,8 +1,13 @@
 package dev.reactfuscator.analysis.leak;
 
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.LineNumberNode;
+import org.objectweb.asm.tree.MethodNode;
 
-import java.util.*;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 public final class DebugAttributeInspector {
     public Map<String, Long> count(ClassNode owner) {

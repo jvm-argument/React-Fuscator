@@ -5,12 +5,16 @@ import dev.reactfuscator.mapping.MappingModel;
 import dev.reactfuscator.model.ArchiveModel;
 import dev.reactfuscator.platform.PlatformHandler;
 
-import org.yaml.snakeyaml.*;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.LoaderOptions;
+import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public final class PaperMetadataHandler implements PlatformHandler {
     private final List<String> descriptors = List.of("plugin.yml", "paper-plugin.yml");

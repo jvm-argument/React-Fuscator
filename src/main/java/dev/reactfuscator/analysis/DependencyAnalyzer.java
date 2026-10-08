@@ -2,10 +2,15 @@ package dev.reactfuscator.analysis;
 
 import dev.reactfuscator.model.ArchiveModel;
 
-import org.objectweb.asm.*;
-import org.objectweb.asm.commons.*;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.commons.ClassRemapper;
+import org.objectweb.asm.commons.Remapper;
 
-import java.util.*;
+import java.util.Set;
+import java.util.TreeSet;
 
 public final class DependencyAnalyzer {
     public Set<String> references(ArchiveModel archive) {

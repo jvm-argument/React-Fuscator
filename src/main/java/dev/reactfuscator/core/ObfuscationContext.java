@@ -1,14 +1,28 @@
 package dev.reactfuscator.core;
 
-import dev.reactfuscator.analysis.*;
-import dev.reactfuscator.config.*;
-import dev.reactfuscator.model.*;
-import dev.reactfuscator.service.*;
-import dev.reactfuscator.util.*;
+import dev.reactfuscator.analysis.HierarchyService;
+import dev.reactfuscator.analysis.KeepPolicy;
+import dev.reactfuscator.config.ObfuscationConfig;
+import dev.reactfuscator.config.RuleMatcher;
+import dev.reactfuscator.model.ArchiveModel;
+import dev.reactfuscator.model.ClassModel;
+import dev.reactfuscator.model.RunStatistics;
+import dev.reactfuscator.service.CancellationToken;
+import dev.reactfuscator.service.ProgressListener;
+import dev.reactfuscator.util.BytecodeHelper;
+import dev.reactfuscator.util.NameFactory;
 
-import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.SplittableRandom;
 
 public final class ObfuscationContext {
     private final ArchiveModel archive;

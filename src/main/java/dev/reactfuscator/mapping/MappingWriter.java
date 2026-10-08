@@ -1,6 +1,7 @@
 package dev.reactfuscator.mapping;
 
-import com.google.gson.*;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 
 import dev.reactfuscator.io.AtomicFileWriter;
 
