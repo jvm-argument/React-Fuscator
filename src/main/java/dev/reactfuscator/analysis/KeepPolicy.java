@@ -21,6 +21,7 @@ public final class KeepPolicy {
     private final Set<String> memberOwners = new HashSet<>();
     private final Set<String> exactMembers = new HashSet<>();
     private final Set<String> mixinPackages = new TreeSet<>();
+    private final Set<String> initializerLineClasses = new HashSet<>();
     private final Map<String, String> generatedSources = new HashMap<>();
     private final ObfuscationConfig config;
     private final RuleMatcher include;
@@ -52,6 +53,14 @@ public final class KeepPolicy {
 
     public void preserveCode(String name) {
         untouched.add(name.replace('.', '/'));
+    }
+
+    public void preserveInitializerLines(String name) {
+        initializerLineClasses.add(name.replace('.', '/'));
+    }
+
+    public boolean preservesInitializerLines(String name) {
+        return initializerLineClasses.contains(name.replace('.', '/'));
     }
 
     public void keepMembersOf(String name) {

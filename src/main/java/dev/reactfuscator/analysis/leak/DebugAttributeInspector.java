@@ -10,6 +10,21 @@ import java.util.Set;
 import java.util.TreeMap;
 
 public final class DebugAttributeInspector {
+    public long countConstructorLineTables(ClassNode owner) {
+        long count = 0;
+        for (MethodNode method : owner.methods) {
+            if (method.name.equals("<init>")) {
+                for (AbstractInsnNode instruction : method.instructions) {
+                    if (instruction instanceof LineNumberNode) {
+                        count++;
+                        break;
+                    }
+                }
+            }
+        }
+        return count;
+    }
+
     public Map<String, Long> count(ClassNode owner) {
         Map<String, Long> attributes = new TreeMap<>();
         if (owner.sourceFile != null) {

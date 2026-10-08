@@ -102,6 +102,31 @@ public final class LeakScannerService {
                         .forEach(
                                 (attribute, count) -> {
                                     remainingDebug.merge(attribute, count, Long::sum);
+                                    long retained =
+                                            attribute.equals("LineNumberTable")
+                                                            && keeps.preservesInitializerLines(
+                                                                    oldOwner)
+                                                    ? Math.min(
+                                                            count,
+                                                            debug.countConstructorLineTables(owner))
+                                                    : 0;
+                                    if (retained > 0) {
+                                        add(
+                                                report,
+                                                findings,
+                                                new LeakFinding(
+                                                        "DEBUG",
+                                                        path,
+                                                        attribute,
+                                                        "Mixin constructors",
+                                                        "RETAINED_CONTRACT",
+                                                        "Required for Mixin field initializer"
+                                                                + " extraction"),
+                                                retained);
+                                    }
+                                    if (count == retained) {
+                                        return;
+                                    }
                                     String status =
                                             keeps.selected(oldOwner) ? "UNRESOLVED" : "EXCLUDED";
                                     add(
@@ -118,7 +143,7 @@ public final class LeakScannerService {
                                                                     + " preserved multi-release"
                                                                     + " variant"
                                                             : "Debug attribute remains in output"),
-                                            count);
+                                            count - retained);
                                 });
                 for (MethodNode method : owner.methods) {
                     for (AbstractInsnNode instruction : method.instructions) {

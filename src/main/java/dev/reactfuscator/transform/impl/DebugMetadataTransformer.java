@@ -16,8 +16,8 @@ public final class DebugMetadataTransformer implements Transformer {
         return new TransformerDescriptor(
                 "debug",
                 "Debug metadata",
-                "Remove local/line/parameter/source debug attributes, including interfaces and"
-                        + " Mixin helpers.",
+                "Remove debug attributes while preserving constructor lines required by Mixin"
+                        + " field initializers.",
                 99,
                 ProtectionProfile.LIGHT,
                 false,
@@ -33,8 +33,11 @@ public final class DebugMetadataTransformer implements Transformer {
             if (!excluded.matches(model.originalName() + "#" + method.name + method.desc)
                     && !passExcluded.matches(
                             model.originalName() + "#" + method.name + method.desc)) {
+                boolean preserveLines =
+                        method.name.equals("<init>")
+                                && context.keeps().preservesInitializerLines(model.originalName());
                 for (AbstractInsnNode instruction : method.instructions.toArray()) {
-                    if (instruction instanceof LineNumberNode) {
+                    if (instruction instanceof LineNumberNode && !preserveLines) {
                         method.instructions.remove(instruction);
                     }
                 }

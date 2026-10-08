@@ -110,6 +110,7 @@ public final class FabricMetadataHandler implements PlatformHandler {
                             throw new IOException("Mixin class missing: " + owner);
                         }
                         keeps.preserveCode(owner);
+                        keeps.preserveInitializerLines(owner);
                         keeps.keepMembersOf(owner);
                         if (!keeps.renameMixins()) {
                             keeps.keepClass(owner, "Mixin selectors and member contracts");

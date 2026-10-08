@@ -131,6 +131,7 @@ public final class CompatibilityAnalyzer {
             }
             if (hasAnnotation(classNode, "Lorg/spongepowered/asm/mixin/Mixin;")) {
                 keeps.preserveCode(classNode.name);
+                keeps.preserveInitializerLines(classNode.name);
                 keeps.keepMembersOf(classNode.name);
                 if (!keeps.renameMixins()) {
                     keeps.keepClass(classNode.name, "Mixin bytecode and selectors");
