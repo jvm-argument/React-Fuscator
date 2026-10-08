@@ -3,6 +3,8 @@
 !/pom.xml
 !/.gitignore
 !/.gitattributes
+!/README.md
+!/README.en.md
 /src/*
 !/src/main/
 *.class
