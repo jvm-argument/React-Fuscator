@@ -1,1 +1,0 @@
-{"schemaVersion":1,"id":"reactfuscator_probe","version":"1.0.0","name":"React-Fuscator JVM verification probe","environment":"client","entrypoints":{"client":["dev.reactfuscator.testing.FabricVerificationProbe"]},"depends":{"fabricloader":">=0.16.14","java":">=21"}}

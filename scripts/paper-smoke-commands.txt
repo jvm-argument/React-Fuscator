@@ -1,6 +1,0 @@
-plugins
-aperevent admin info
-aperevent admin reload
-legendary reload
-aperevent start
-aperevent stop
