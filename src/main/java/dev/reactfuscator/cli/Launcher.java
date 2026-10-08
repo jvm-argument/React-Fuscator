@@ -12,7 +12,7 @@ import java.util.concurrent.Callable;
 
 @Command(
         name = "react-fuscator",
-        version = "React-Fuscator 1.0.0",
+        version = "React-Fuscator 1.1.0",
         description = "Java + ASM obfuscation for JAR, Paper and Fabric.",
         mixinStandardHelpOptions = true,
         subcommands = {ObfuscateCommand.class, InspectCommand.class, VerifyCommand.class})

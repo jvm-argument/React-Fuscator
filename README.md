@@ -1,95 +1,103 @@
-# React-Fuscator
+<div align="center">
 
-Java + ASM obfuscator for ordinary JARs, Bukkit/Spigot/Paper plugins and Fabric mods. The desktop GUI and CLI share one pipeline and one compatibility policy. The application runs on Java 17+; transformed artifacts retain their original bytecode version. Java 8 output has been run under a real Java 8 JVM.
+![React-Fuscator](docs/assets/banner.svg)
 
-Инструкция на русском: [быстрый запуск](docs/quickstart.md) и [результаты реальных проверок](docs/validation.md).
+**Русский** · [English](README.en.md)
 
-## Build and launch
+[![Build](https://github.com/jvm-argument/React-Fuscator/actions/workflows/build.yml/badge.svg)](https://github.com/jvm-argument/React-Fuscator/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/jvm-argument/React-Fuscator?color=white)](https://github.com/jvm-argument/React-Fuscator/releases/latest)
+![Java](https://img.shields.io/badge/Java-17%2B-white)
+![ASM](https://img.shields.io/badge/ASM-9.10.1-white)
 
-```powershell
-mvn -B -ntp package
-java -jar target/react-fuscator.jar gui
-java -jar target/react-fuscator.jar --help
+[Скачать](https://github.com/jvm-argument/React-Fuscator/releases/latest) · [Сообщить об ошибке](https://github.com/jvm-argument/React-Fuscator/issues) · [Архитектура](docs/architecture.md)
+
+</div>
+
+Java + ASM обфускатор обычных JAR, Bukkit/Spigot/Paper-плагинов и Fabric-модов. GUI и CLI используют общий расширяемый pipeline, анализ совместимости и обязательную ASM verification. **Extreme выбран по умолчанию.**
+
+## Быстрый запуск
+
+Нужна Java 17 или новее. Скачайте `React-Fuscator.jar` из [релиза](https://github.com/jvm-argument/React-Fuscator/releases/latest):
+
+```shell
+java -jar React-Fuscator.jar gui
 ```
 
-`React-Fuscator.bat` launches the packaged desktop application. `scripts/Build.ps1` builds, tests and copies the standalone JAR into `dist/React-Fuscator.jar`.
+Перетащите JAR в окно, выберите output и нажмите **Obfuscate**. Для платформенного кода добавьте API и зависимости нужной версии на вкладке **Libraries**; для standalone JAR без внешних зависимостей это не требуется. Portable ZIP включает Windows-запускатель `React-Fuscator.bat`.
 
-![Desktop interface](docs/gui-preview.png)
+![Интерфейс](docs/gui-preview.png)
 
 ## CLI
 
-```powershell
-java -jar dist/React-Fuscator.jar inspect input.jar -l dependencies
-java -jar dist/React-Fuscator.jar obfuscate input.jar -o protected.jar -p strong -l dependencies
-java -jar dist/React-Fuscator.jar obfuscate input.jar -o protected.jar -p extreme -l dependencies --seed 42 --exclude 'vendor/**' --keep 'api/**'
-java -jar dist/React-Fuscator.jar obfuscate input.jar -o protected.jar -p extreme -l dependencies --rename-serialization
-java -jar dist/React-Fuscator.jar verify protected.jar -l dependencies
-java -jar dist/React-Fuscator.jar init-config config.json
-java -jar dist/React-Fuscator.jar obfuscate input.jar -o protected.jar -c config.json
-java -jar dist/React-Fuscator.jar retrace protected.jar.mapping.json stacktrace.txt
+```shell
+java -jar React-Fuscator.jar obfuscate input.jar -o protected.jar
+java -jar React-Fuscator.jar obfuscate plugin.jar -o protected.jar -l dependencies --seed 42
+java -jar React-Fuscator.jar obfuscate input.jar -o protected.jar -p strong --exclude "vendor/**" --keep "api/**"
+java -jar React-Fuscator.jar inspect input.jar -l dependencies
+java -jar React-Fuscator.jar verify protected.jar -l dependencies
+java -jar React-Fuscator.jar transformers
+java -jar React-Fuscator.jar init-config config.json
+java -jar React-Fuscator.jar obfuscate input.jar -o protected.jar -c config.json
+java -jar React-Fuscator.jar retrace protected.jar.mapping.json stacktrace.txt
 ```
 
-`--library` accepts repeated JAR paths or directories. Nested dependency JARs are indexed, including Fabric API modules. Provide the dependencies for the actual platform/version and any interacting plugins or mods. Minecraft intermediary artifacts must use the same namespace as the input mod. Libraries supply metadata; they are not copied into the output.
+`-l` / `--library` принимает JAR или каталог и может повторяться. Для Fabric нужен Minecraft JAR в namespace входного мода, например intermediary, и соответствующие зависимости. Библиотеки используются для анализа и не включаются в output. Недостающая иерархия останавливает обычную обработку; `--allow-missing-dependencies` — диагностический режим с явно несертифицированным результатом.
 
-Transformer switches: `--enable flatten`, `--disable strings`, `--set numbers.rounds=4`, `--set flow.density=80`. Run `transformers` to list registered passes. Configuration paths for libraries are relative to the configuration file. Unknown config keys and unsupported settings are rejected.
+Успешный запуск создаёт JAR, `*.mapping.json` и `*.report.json`. Mapping содержит исходные имена и нужен для retrace. JAR публикуется после проверки; фиксированный seed воспроизводит результат при неизменных входных данных, настройках и библиотеках.
 
-Each successful run produces the JAR, `*.mapping.json` and `*.report.json`. The report contains the seed, counts, size, timing, keep reasons and compatibility warnings. The JAR is published last after verification and staging; failures restore any sidecars replaced during publication. A fixed seed produces reproducible JAR bytes for an unchanged input, configuration and dependency set.
+## Профили и трансформеры
 
-## Protection profiles
+| Профиль | Дополнительные проходы |
+|---|---|
+| Light | Шифрование строк, удаление debug metadata |
+| Normal | Light + числа, conditional/switch flow |
+| Strong | Normal + invokedynamic/concat-строки, opaque predicates, junk code, типизированная indirection |
+| **Extreme · default** | Strong + cover classes, ConstantValue, CFG flattening, exception flow, proxy и защита helpers |
 
-| Profile | Default passes | Density | Numeric/predicate rounds |
-|---|---|---:|---:|
-| Light | Strings, debug metadata | 15% | 1 |
-| Normal | Light + numbers, branch/switch flow | 35% | 2 |
-| Strong | Normal + invokedynamic strings, opaque predicates, junk, indirection | 65% | 3 |
-| Extreme | Strong + interwoven cover classes, CFG flattening, proxy methods | 100% | 4 |
+Class/package/method/field remapping включён во всех профилях. Собственные virtual/interface-семейства переименовываются согласованно; внешние API callbacks сохраняют имена. Пакеты распределяются с учётом package access, nestmates и method handles.
 
-Class/package and eligible private/public/protected-member renaming are enabled in every profile. Owned interface/override dispatch families share one new name. External API callbacks retain their names. `--keep-public-api` restores conservative private-only member renaming. `--rename-serialization` also permits changing enum/record/Serializable class identities; existing serialized data can require migration. Mixin class renaming and package scattering are enabled by default; `--keep-mixin-names` and `--no-scatter` opt out. Each pass can be independently enabled, excluded or tuned. Density governs the fraction of eligible literals, instructions or methods selected. Junk method count and predicate/number expansion use rounds. GUI controls expose only settings actually used by that transformer.
+- Несколько UTF-16 decryptors, случайное распределение, cached/interned invokedynamic strings и зашифрованные StringConcatFactory recipes.
+- Числовые маски с runtime-derived значениями и сохранением IEEE-754 bits.
+- Разные opaque/branch/switch шаблоны, одно- и двухуровневый CFG dispatcher, ограниченный exception-based flow.
+- Типизированные bridges и multi-target dispatchers без boxing; proxy сохраняет synchronization на входном методе.
+- Cover classes с реальными входящими ссылками, перемещёнными реализациями и обычными access flags.
+- Удаление LocalVariableTable, LocalVariableTypeTable, LineNumberTable, MethodParameters, SourceFile и SourceDebugExtension. Семантические атрибуты сохраняются.
 
-## Implemented transformations
+Настройки проходов: `--disable strings`, `--enable flatten`, `--set numbers.rounds=4`, `--set flow.density=80`. Полный список — `transformers`; конфигурации — [examples](examples).
 
-- Class/package mapping and eligible member renaming, including owned virtual dispatch families. External override/interface/SAM contracts remain stable. Inherited static/field references resolve to the original declaration; shadowed members remain distinct. Scattering groups classes by actual package access, method-handle references and nestmate constraints, instead of preserving the original directory tree.
-- Referenced cover classes contain extracted pure static implementations or live arithmetic adapters, plus varied state/method shapes. They have ordinary class access flags, receive the remaining protection passes and share the scattered output namespace. Removing them breaks real call edges; this raises detection cost without promising that cover code is indistinguishable from application code.
-- Strong/Extreme string literals use encrypted UTF-16 data in invokedynamic bootstrap arguments, with private decoders and cached, interned ConstantCallSites. This preserves Java 8 compatibility and string identity while moving decoding away from ordinary call sites.
-- Per-literal UTF-16 string masking with a decoder injected into the same class. Unicode, NUL and interned-string identity are preserved. Private `ConstantValue` strings move into initializer code; public constant values and annotation values retain their contracts. Literals over 16,000 UTF-16 units are retained to avoid constant-pool overflow.
-- Integer/long XOR layers and float/double reconstruction from their raw IEEE-754 bits. Strong/Extreme tie masking to a per-method runtime-derived opaque seed, so straight constant folding is insufficient to recover values.
-- Conditional inversion, jump-to-switch conversion and encoded switch keys.
-- Extreme CFG flattening: analyze stack-neutral block entries, initialize compatible locals, preserve reference types at use sites, shuffle blocks and route transitions through a state dispatcher. Constructors, exception regions, object construction, explicit monitor regions, incompatible reused locals and oversized graphs are excluded from flattening.
-- Runtime-dependent parity predicates and verifier-valid decoy branches; synthetic junk methods.
-- Typed same-owner invocation and field-access bridges. Final writes remain inside constructors/class initializers.
-- Private unannotated method outlining behind forwarding methods; synchronization remains on the original entry method.
-- Source/line removal and local-variable name scrambling; public parameter metadata remains intact. Flattened scopes are removed because lexical intervals no longer describe reordered blocks.
+## Совместимость и правила
 
-The transforms increase analysis cost, with additional code size and runtime work at stronger profiles. The string mechanism is reversible runtime obfuscation, not a cryptographic secret store.
+Поддерживаются `plugin.yml`, `paper-plugin.yml`, `fabric.mod.json`, entrypoints, Mixins, refmap, access widener, Manifest и `META-INF/services`. Mixin-классы и пакеты меняются вместе с config/refmap; selectors и требуемые контракты сохраняются. UTF-8 resources обновляют полные class-name tokens; бинарные ресурсы и вложенные JAR сохраняются.
 
-## Compatibility and rules
+Reflection анализируется до rename. Named lookup сохраняет затронутых владельцев и их иерархию; неизвестные динамические lookup обрабатываются консервативно с warnings. Сохраняются JNI/JNA, enum constants, record components, serialization fields/hooks и неизвестные annotation contracts. Class identities enum/record/Serializable по умолчанию могут меняться; для старых сериализованных данных включите `preserveSerializationNames` или GUI **Keep serialization ABI**.
 
-Globs use JVM internal names (`com/example/**`) and member notation (`com/example/Owner#method(I)V`). `**` crosses package boundaries, `*` does not. `include` selects classes; `exclude` retains original names/code for matching classes or methods. All classes still receive reference remapping so calls from excluded code to renamed code remain valid. `keep` retains identities while allowing bytecode transforms; `keepMembers` retains matching member names.
+Правила используют JVM internal names: `com/example/**`, `com/example/Owner#method(I)V`. `include` выбирает классы, `exclude` сохраняет имена и код, `keep` сохраняет имена при включённых transforms, `keepMembers` сохраняет выбранные members. Исключённый код также получает обновлённые ссылки. Подробнее — [remapping](docs/remapping.md).
 
-Paper `plugin.yml` and `paper-plugin.yml` are parsed with safe YAML. Main, loader and bootstrapper class names are remapped in their descriptors. Their inherited platform callbacks remain compatible through hierarchy analysis.
+После изменения JAR старые подписи удаляются. Multi-release variants и вложенные application JAR не обфусцируются рекурсивно. Reflection из внешних данных, name-based JSON, неуказанные взаимодействующие моды/плагины и Spring Boot/WAR layouts требуют правил и отдельных runtime-проверок. Защита строк обратима во время исполнения; Extreme увеличивает размер и нагрузку на JVM.
 
-Fabric entrypoints, adapters and `Class::method` declarations are recognized and remapped. Mixin classes and package helpers can be renamed and scattered under dedicated common roots separate from ordinary application classes. Config `package`/lists, refmap owner keys/descriptors and resource paths follow the mapping. Mixin bytecode/selectors and local soft-reference targets retain their contracts; external Minecraft symbols remain unchanged. Access widener v1/v2 declarations remap local owner/member/descriptors.
+## Leak Scanner и отчёт
 
-Manifest entrypoints and service descriptor paths/providers are remapped. Configured UTF-8 text resources replace complete class-name tokens, preserving unrelated substrings. Package-relative resources follow relocated packages; literal absolute resource paths pin their packages. Binary resources and embedded JARs are preserved. Old signatures/digests and the JAR index are removed; re-sign a transformed artifact when signatures are part of its deployment contract.
+После remapping и encoding сканируются constant pool, debug attributes и текстовые resources: исходные packages/classes/members, чувствительные plaintext strings, старые Paper/Fabric/Mixin references.
 
-Enum constant names, record/annotation/serialized member contracts, JNI and Kotlin metadata are preserved. Enum/record/annotation/Serializable class identities are kept by default and can be explicitly released through `--rename-serialization`. JNA Structure/Union fields and Library/Callback functions retain the names used by native binding. Ordinary string literals do not pin unrelated members. Named reflection lookup is analyzed using its Class receiver and supplied string arguments; external reflection no longer freezes every input member. Unresolved dynamic class loading or unresolved receiver/name combinations use conservative keeps and report the reason. Member enumeration alone does not pin names.
+Находки классифицируются как `UNRESOLVED`, `RETAINED_CONTRACT`, `EXTERNAL_CONTRACT`, `AMBIGUOUS_TOKEN`, `RESOURCE_DATA` или `EXCLUDED`. Требуемые ABI-имена показываются отдельно от нерешённых утечек. Protection report содержит renamed classes/methods/fields, encrypted strings, уникальные transformed methods, removed debug attributes, predicates/proxies/dispatchers, найденные и устранённые metadata leaks, cipher/flow distributions и locations. Details ограничены 25 000 записями; полные счётчики сохраняются.
 
-Arbitrary reflection assembled from external data, JavaBean/getName-based protocols, name-based JSON persistence, external plugins that are not supplied, dynamically assembled resource paths and code that depends on the exact count of members require explicit keep/exclude rules and application tests. No static analyzer can infer all such runtime contracts. See [the remapping guide](docs/remapping.md) for the new settings and intentional exceptions.
+## Сборка и стиль
 
-Multi-release variants and embedded application JARs are retained byte-for-byte; root identities are kept for multi-release ABI consistency. Embedded archives are preserved rather than recursively obfuscated. Standard root-layout JARs are supported; executable Spring Boot/WAR layouts require separate handling of their contained application JARs. The diagnostic `--allow-missing-dependencies` mode marks its output uncertified; normal runs fail on unresolved hierarchy dependencies. ASM checking does not replace a real platform/application run.
+```powershell
+mvn -B -ntp verify
+./scripts/Build.ps1
+./scripts/Format-Java.ps1
+./scripts/Format-Java.ps1 -Check
+```
 
-## Architecture and extension
+Сборка требует JDK 17+, formatter — JDK 21+. Стиль основан на Google Java Format в режиме AOSP: 4 пробела, развёрнутые блоки, отдельные объявления полей, пустые строки между методами, отсутствие комментариев. CI проверяет стиль и поведение JVM на Linux/Windows с Java 17/21/25.
 
-`core` owns orchestration; `analysis` owns hierarchy/compatibility/CFG analysis; `mapping` owns plans and artifacts; `remap` owns bytecode/resources; `platform` owns loader-specific metadata; `transform/impl` owns individual passes; `verification` owns ASM dataflow and frame computation; `io` owns archive/publication; `registry` owns registration; `cli` and `gui` own presentation.
+`ApplicationFactory` собирает зависимости через конструкторы. `core`, `analysis`, `mapping`, `remap`, `platform`, `transform`, `verification`, `io`, `cli` и `gui` разделяют ответственность. Новый проход реализует `Transformer` и регистрируется в `TransformerRegistry` или ServiceLoader. Oversized expansion откатывается для класса/прохода, ошибки verifier останавливают публикацию.
 
-Dependencies are injected through constructors in `ApplicationFactory`. A run receives its own context, seeded generators, models, settings, keep policy and statistics. No application class is loaded or initialized for ASM verification. Missing types never silently use the obfuscator's own dependency classpath.
+Skidfuscator использован как архитектурный референс; реализация собственная, код Skidfuscator/MapleIR не включён. Зависимости и лицензии — [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
-To add a pass, implement `Transformer` and register it with `TransformerRegistry`, or expose it through `META-INF/services/dev.reactfuscator.transform.Transformer`. Its descriptor controls order, profile and available settings. The pipeline checks method-size growth and rolls back that class/pass when necessary. Structural or dataflow verification errors stop the run before publishing a JAR.
+## Проверки
 
-The Skidfuscator reference study is recorded in [docs/architecture.md](docs/architecture.md). This project has its own ASM implementation and does not embed Skidfuscator/MapleIR code.
+44 автоматических теста: исполнение до/после с `-Xverify:all`, все профили, reflection, dispatch, Unicode/NUL, числа, exceptions, synchronization, resources, metadata, воспроизводимость и публикация.
 
-## Validation
-
-Run `mvn test`. Tests compare execution before/after processing under `-Xverify:all`, covering all profiles, Java 8/11/17/21/25 class versions, recursive calls, lambdas, exceptions, switch/loop flow, synchronization, array merges, numeric bits, scoped reflection, owned virtual dispatch, native contracts, package/method-handle/nest access, cover classes, invokedynamic strings, service providers, relative/absolute resources, serialization, records/enums, member shadowing, deterministic flattening, constant values, signatures, multi-release preservation, exclusions, cancellation and publication failures.
-
-[docs/validation.md](docs/validation.md) records actual platform versions, real supplied artifacts and test limitations. Integration fixture projects and the Fabric verification probe are in `integration/`; optional runtime harness commands are in `scripts/`.
+Новый Extreme проверен на реальном Xeron 1.0.0 / Fabric 1.21.4: клиент вошёл в локальный мир, 917 обычных классов прошли JVM-проверку без ошибок, Mixins и entrypoints загрузились, процесс завершился с кодом 0. Это проверка конкретного артефакта, а не всех сочетаний Minecraft/API. Предыдущая матрица Paper/Fabric 1.16.5–26.3 и ограничения — в [результатах проверок](docs/validation.md). Пользовательские моды, плагины и серверы в релиз не включаются.

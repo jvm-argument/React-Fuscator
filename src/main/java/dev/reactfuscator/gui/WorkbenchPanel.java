@@ -322,6 +322,21 @@ public final class WorkbenchPanel extends JPanel {
                                                     s.outputBytes / 1024.0,
                                                     s.elapsedMillis / 1000.0));
                             status.setText("Complete · " + result.output().getFileName());
+                            var protection = s.protection;
+                            console.append(
+                                    String.format(
+                                            Locale.ROOT,
+                                            "Protection: strings %d, methods %d, debug removed %d,"
+                                                    + " predicates %d, proxies %d, dispatchers %d,"
+                                                    + " metadata leaks %d → %d%n",
+                                            protection.encryptedStrings,
+                                            protection.transformedMethods,
+                                            protection.removedDebugAttributes,
+                                            protection.generatedOpaquePredicates,
+                                            protection.generatedProxies,
+                                            protection.generatedDispatchers,
+                                            protection.metadataLeaksFound,
+                                            protection.metadataLeaksRemaining));
                             console.append(
                                     "Mapping: "
                                             + result.mapping()

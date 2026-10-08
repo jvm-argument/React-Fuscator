@@ -1,6 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>dev.reactfuscator</groupId><artifactId>react-fuscator</artifactId><version>1.0.0</version>
+  <groupId>dev.reactfuscator</groupId><artifactId>react-fuscator</artifactId><version>1.1.0</version>
   <name>React-Fuscator</name><description>Platform-aware Java bytecode obfuscator</description>
   <properties><maven.compiler.release>17</maven.compiler.release><project.build.sourceEncoding>UTF-8</project.build.sourceEncoding><asm.version>9.10.1</asm.version></properties>
   <dependencies>

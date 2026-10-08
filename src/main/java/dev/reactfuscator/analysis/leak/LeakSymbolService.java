@@ -20,7 +20,7 @@ public final class LeakSymbolService {
                 packages.add(owner.substring(0, slash));
             }
             String simple = owner.substring(slash + 1);
-            if (simple.length() >= 5) {
+            if (!simple.isEmpty()) {
                 index.add(new SymbolTokenIndex.Symbol(simple, "CLASS", owner, true));
             }
         }
@@ -29,12 +29,12 @@ public final class LeakSymbolService {
             index.add(new SymbolTokenIndex.Symbol(pkg.replace('/', '.'), "PACKAGE", pkg, false));
         }
         for (String method : new TreeSet<>(original.methods())) {
-            if (method.length() >= 4) {
+            if (!method.isEmpty() && !method.startsWith("<")) {
                 index.add(new SymbolTokenIndex.Symbol(method, "METHOD", method, true));
             }
         }
         for (String field : new TreeSet<>(original.fields())) {
-            if (field.length() >= 4) {
+            if (!field.isEmpty()) {
                 index.add(new SymbolTokenIndex.Symbol(field, "FIELD", field, true));
             }
         }

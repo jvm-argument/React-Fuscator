@@ -118,6 +118,13 @@ public final class JavaStyleTool {
         }
         String formatted =
                 formatter.formatSourceAndFixImports(LexicalPreservingPrinter.print(unit));
+        for (int pass = 0; pass < 3; pass++) {
+            String next = formatter.formatSourceAndFixImports(formatted);
+            if (next.equals(formatted)) {
+                break;
+            }
+            formatted = next;
+        }
         return expandEmptyBlocks(formatted);
     }
 
