@@ -146,6 +146,28 @@ public final class LeakScannerService {
                         }
                     }
                 }
+                Set<String> encryptedPayloads = new HashSet<>();
+                for (MethodNode method : owner.methods) {
+                    for (AbstractInsnNode instruction : method.instructions) {
+                        if (instruction instanceof InvokeDynamicInsnNode call
+                                && call.bsm.getOwner().equals(owner.name)
+                                && (call.bsm
+                                                .getDesc()
+                                                .equals(
+                                                        "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;I)Ljava/lang/invoke/CallSite;")
+                                        || call.bsm
+                                                .getDesc()
+                                                .equals(
+                                                        "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;ILjava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;"))) {
+                            for (int argument = 0; argument + 1 < call.bsmArgs.length; argument++) {
+                                if (call.bsmArgs[argument] instanceof String text
+                                        && call.bsmArgs[argument + 1] instanceof Integer) {
+                                    encryptedPayloads.add(text);
+                                }
+                            }
+                        }
+                    }
+                }
                 for (String value : pool.utf8()) {
                     index.scan(
                             value,
@@ -182,6 +204,23 @@ public final class LeakScannerService {
                                                 || !keeps.transformClass(oldOwner)
                                         ? "RETAINED_CONTRACT"
                                         : "UNRESOLVED";
+                        String explanation =
+                                "Original plaintext literal remains; annotations, constant ABI and"
+                                        + " loader selectors can require plaintext";
+                        if (status.equals("UNRESOLVED")
+                                && (owner.access & Opcodes.ACC_INTERFACE) != 0) {
+                            status = "EXCLUDED";
+                            explanation =
+                                    "Interface instruction transforms are excluded by the"
+                                            + " compatibility pipeline";
+                        } else if (status.equals("UNRESOLVED")
+                                && !sensitive
+                                && encryptedPayloads.contains(value)) {
+                            status = "AMBIGUOUS_TOKEN";
+                            explanation =
+                                    "Encrypted bootstrap payload coincides with an input literal;"
+                                            + " this is not evidence of retained plaintext";
+                        }
                         add(
                                 report,
                                 findings,
@@ -191,9 +230,7 @@ public final class LeakScannerService {
                                         value,
                                         "constant pool UTF8",
                                         status,
-                                        "Original plaintext literal remains; annotations/constant"
-                                            + " ABI, exclusions and loader selectors can require"
-                                            + " plaintext"),
+                                        explanation),
                                 1);
                     }
                 }
