@@ -1,5 +1,5 @@
 React-Fuscator bundles unmodified third-party components:
-ASM 9.10.1 (BSD-3-Clause): https://asm.ow2.io/
+ASM 9.11 (BSD-3-Clause): https://asm.ow2.io/
 Gson 2.13.2 (Apache-2.0): https://github.com/google/gson
 SnakeYAML 2.4 (Apache-2.0): https://bitbucket.org/snakeyaml/snakeyaml
 picocli 4.7.7 (Apache-2.0): https://github.com/remkop/picocli

@@ -1,0 +1,133 @@
+name: build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: maven
+
+      - name: Get next build number
+        id: pre_build
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch --tags origin
+
+          LAST_NUM=$(
+            git tag -l 'v[0-9]*' |
+            grep -E '^v[0-9]+$' |
+            sed 's/^v//' |
+            sort -n |
+            tail -n 1 || true
+          )
+
+          if [ -z "$LAST_NUM" ]; then
+            NEXT_NUM=1
+          else
+            NEXT_NUM=$((LAST_NUM + 1))
+          fi
+
+          echo "next_number=$NEXT_NUM" >> "$GITHUB_OUTPUT"
+          echo "Next build number: $NEXT_NUM"
+
+      - name: Build with Maven
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mvn -B clean package \
+            --file pom.xml \
+            -DskipTests \
+            -Dbuild.number=${{ steps.pre_build.outputs.next_number }}
+
+      - name: Package JAR
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          NEXT_NUM=${{ steps.pre_build.outputs.next_number }}
+          ORIGINAL_JAR="target/react-fuscator.jar"
+
+          if [ ! -f "$ORIGINAL_JAR" ]; then
+            echo "ERROR: Shaded JAR not found at $ORIGINAL_JAR"
+            ls -lah target/
+            exit 1
+          fi
+
+          JAR_NAME="react-fuscator-${NEXT_NUM}.jar"
+          cp "$ORIGINAL_JAR" "$JAR_NAME"
+
+          echo "JAR_FILE=$JAR_NAME" >> "$GITHUB_OUTPUT"
+          echo "next_number=$NEXT_NUM" >> "$GITHUB_OUTPUT"
+
+          echo "Successfully packaged $JAR_NAME"
+          ls -lh "$JAR_NAME"
+
+      - name: Generate changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          LAST_TAG=$(
+            git tag -l 'v[0-9]*' |
+            grep -E '^v[0-9]+$' |
+            sort -V |
+            tail -n 1 || true
+          )
+
+          REPO_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+
+          {
+            echo "## Changes"
+            echo
+
+            if [ -z "$LAST_TAG" ]; then
+              echo "_Initial release_"
+              echo
+              git log -n 100 \
+                --pretty=format:"- %s ([%h](${REPO_URL}/commit/%H))" HEAD
+            else
+              echo "_Changes since ${LAST_TAG}_"
+              echo
+              git log -n 100 \
+                --pretty=format:"- %s ([%h](${REPO_URL}/commit/%H))" \
+                "${LAST_TAG}..HEAD"
+            fi
+
+            echo
+          } > CHANGELOG.md
+
+          cat CHANGELOG.md
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v3.0.3
+        with:
+          files: ${{ steps.package.outputs.JAR_FILE }}
+          tag_name: v${{ steps.package.outputs.next_number }}
+          name: React-Fuscator Build ${{ steps.package.outputs.next_number }}
+          body_path: CHANGELOG.md
+          fail_on_unmatched_files: true
+          overwrite_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
